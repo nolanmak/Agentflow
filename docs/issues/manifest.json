@@ -1,0 +1,200 @@
+[
+  {
+    "code": "AF-01",
+    "title": "AF-01: Prove native session continuity and choose supported transports",
+    "milestone": "M0: Session proof",
+    "dependencies": [],
+    "body_file": "af-01.md",
+    "url": "https://github.com/nolanmak/Agentflow/issues/1",
+    "number": 1
+  },
+  {
+    "code": "AF-02",
+    "title": "AF-02: Create the local service, typed contracts, and deterministic test harness",
+    "milestone": "M0: Session proof",
+    "dependencies": [],
+    "body_file": "af-02.md",
+    "url": "https://github.com/nolanmak/Agentflow/issues/2",
+    "number": 2
+  },
+  {
+    "code": "AF-03",
+    "title": "AF-03: Discover and index Codex and Claude Code sessions without modifying history",
+    "milestone": "M0: Session proof",
+    "dependencies": [
+      "AF-01",
+      "AF-02"
+    ],
+    "body_file": "af-03.md",
+    "url": "https://github.com/nolanmak/Agentflow/issues/3",
+    "number": 3
+  },
+  {
+    "code": "AF-04",
+    "title": "AF-04: Coordinate session ownership, handoff, deduplication, and recovery",
+    "milestone": "M1: Agent core",
+    "dependencies": [
+      "AF-01",
+      "AF-02",
+      "AF-03"
+    ],
+    "body_file": "af-04.md",
+    "url": "https://github.com/nolanmak/Agentflow/issues/4",
+    "number": 4
+  },
+  {
+    "code": "AF-05",
+    "title": "AF-05: Implement the Codex adapter with same-session resume and approvals",
+    "milestone": "M1: Agent core",
+    "dependencies": [
+      "AF-01",
+      "AF-04"
+    ],
+    "body_file": "af-05.md",
+    "url": "https://github.com/nolanmak/Agentflow/issues/5",
+    "number": 5
+  },
+  {
+    "code": "AF-06",
+    "title": "AF-06: Implement the Claude Code adapter with same-session resume and approvals",
+    "milestone": "M1: Agent core",
+    "dependencies": [
+      "AF-01",
+      "AF-04"
+    ],
+    "body_file": "af-06.md",
+    "url": "https://github.com/nolanmak/Agentflow/issues/6",
+    "number": 6
+  },
+  {
+    "code": "AF-07",
+    "title": "AF-07: Build independent STT/TTS configuration and secure BYOK settings",
+    "milestone": "M2: Speech providers",
+    "dependencies": [
+      "AF-02"
+    ],
+    "body_file": "af-07.md",
+    "url": "https://github.com/nolanmak/Agentflow/issues/7",
+    "number": 7
+  },
+  {
+    "code": "AF-08",
+    "title": "AF-08: Add the OpenAI transcription and speech provider adapter",
+    "milestone": "M2: Speech providers",
+    "dependencies": [
+      "AF-07"
+    ],
+    "body_file": "af-08.md",
+    "url": "https://github.com/nolanmak/Agentflow/issues/8",
+    "number": 8
+  },
+  {
+    "code": "AF-09",
+    "title": "AF-09: Add the Deepgram transcription and speech provider adapter",
+    "milestone": "M2: Speech providers",
+    "dependencies": [
+      "AF-07"
+    ],
+    "body_file": "af-09.md",
+    "url": "https://github.com/nolanmak/Agentflow/issues/9",
+    "number": 9
+  },
+  {
+    "code": "AF-10",
+    "title": "AF-10: Add ElevenLabs transcription, voice selection, and speech adapter",
+    "milestone": "M2: Speech providers",
+    "dependencies": [
+      "AF-07"
+    ],
+    "body_file": "af-10.md",
+    "url": "https://github.com/nolanmak/Agentflow/issues/10",
+    "number": 10
+  },
+  {
+    "code": "AF-11",
+    "title": "AF-11: Integrate 9Router speech discovery and OpenAI-compatible audio routes",
+    "milestone": "M2: Speech providers",
+    "dependencies": [
+      "AF-07"
+    ],
+    "body_file": "af-11.md",
+    "url": "https://github.com/nolanmak/Agentflow/issues/11",
+    "number": 11
+  },
+  {
+    "code": "AF-12",
+    "title": "AF-12: Implement microphone capture, hands-free turns, ordered speech, and interruption",
+    "milestone": "M3: Conversation",
+    "dependencies": [
+      "AF-04",
+      "AF-07",
+      "AF-08"
+    ],
+    "body_file": "af-12.md",
+    "url": "https://github.com/nolanmak/Agentflow/issues/12",
+    "number": 12
+  },
+  {
+    "code": "AF-13",
+    "title": "AF-13: Build the session dashboard, provider settings, and voice-first controls",
+    "milestone": "M3: Conversation",
+    "dependencies": [
+      "AF-03",
+      "AF-05",
+      "AF-06",
+      "AF-07",
+      "AF-12"
+    ],
+    "body_file": "af-13.md",
+    "url": "https://github.com/nolanmak/Agentflow/issues/13",
+    "number": 13
+  },
+  {
+    "code": "AF-14",
+    "title": "AF-14: Add the managed terminal launcher and agent-callable speak tool",
+    "milestone": "M3: Conversation",
+    "dependencies": [
+      "AF-01",
+      "AF-04",
+      "AF-05",
+      "AF-06",
+      "AF-12"
+    ],
+    "body_file": "af-14.md",
+    "url": "https://github.com/nolanmak/Agentflow/issues/14",
+    "number": 14
+  },
+  {
+    "code": "AF-15",
+    "title": "AF-15: Package macOS startup, service management, and login autostart",
+    "milestone": "M4: Daily-use release",
+    "dependencies": [
+      "AF-02",
+      "AF-13",
+      "AF-14"
+    ],
+    "body_file": "af-15.md",
+    "url": "https://github.com/nolanmak/Agentflow/issues/15",
+    "number": 15
+  },
+  {
+    "code": "AF-16",
+    "title": "AF-16: Validate full voice workflows, latency, and release readiness",
+    "milestone": "M4: Daily-use release",
+    "dependencies": [
+      "AF-05",
+      "AF-06",
+      "AF-08",
+      "AF-09",
+      "AF-10",
+      "AF-11",
+      "AF-12",
+      "AF-13",
+      "AF-14",
+      "AF-15"
+    ],
+    "body_file": "af-16.md",
+    "url": "https://github.com/nolanmak/Agentflow/issues/16",
+    "number": 16
+  }
+]

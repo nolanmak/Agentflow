@@ -1,0 +1,40 @@
+name: Implementation task
+description: Acceptance-driven Agentflow work with a test-first plan
+title: "[AF] "
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: User outcome and scope
+      description: State the user-visible behavior and explicit boundaries.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Link prerequisite issues or say None.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Use observable, checkable Given/When/Then statements.
+      value: "- [ ] Given ..., when ..., then ..."
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Test-first plan
+      description: Name the failing cases to write first, test layer, fixtures, and failure paths.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Completion evidence
+      description: Tests/commands/results, red-stage evidence, relevant integration or manual checks, known gaps.
+    validations:
+      required: true
