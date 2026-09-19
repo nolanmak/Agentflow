@@ -58,7 +58,7 @@ claude mcp add --scope user agentflow -- /absolute/path/to/node /absolute/path/t
 
 [Official Codex MCP configuration](https://developers.openai.com/codex/mcp). Refresh tools using the native client's supported flow when adding tools to an already-running session; Agentflow never closes it automatically.
 
-Ask: **“Use Agentflow to read your answer aloud.”** The `speak` tool plays through the Mac's audio device even with the dashboard closed. Persistent spoken-reply mode and terminal microphone conversation are scoped, with objective TDD criteria, in [issue #17](https://github.com/nolanmak/Agentflow/issues/17); they are not yet complete.
+Ask: **“Use Agentflow to read your answer aloud.”** The `speak` tool plays through the Mac's audio device even with the dashboard closed. No skill is required. Keep using your existing dictation for input. If the running agent has not loaded the MCP tool yet, ask it to run `agentflow speak` using its shell tool. [Issue #17](https://github.com/nolanmak/Agentflow/issues/17) now scopes this minimal CLI/tool path with objective tests; custom terminal microphone capture and automatic speech modes are deferred.
 
 ## Verification
 

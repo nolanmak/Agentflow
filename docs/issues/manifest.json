@@ -199,13 +199,11 @@
   },
   {
     "code": "AF-17",
-    "title": "AF-17: Terminal-only voice conversations and agent-requested spoken replies",
+    "title": "AF-17: Simple terminal speech through Agentflow CLI and one agent tool",
     "milestone": "M3: Conversation",
     "dependencies": [
       "AF-14",
-      "AF-12",
-      "AF-05",
-      "AF-06"
+      "AF-07"
     ],
     "body_file": "af-17.md",
     "url": "https://github.com/nolanmak/Agentflow/issues/17",

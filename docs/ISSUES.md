@@ -23,7 +23,7 @@ The local issue specifications mirror the initial GitHub issue bodies. GitHub is
 | AF-15 | [Package macOS startup, service management, and login autostart](https://github.com/nolanmak/Agentflow/issues/15) | M4: Daily-use release | AF-02, AF-13, AF-14 |
 | AF-16 | [Validate full voice workflows, latency, and release readiness](https://github.com/nolanmak/Agentflow/issues/16) | M4: Daily-use release | AF-05, AF-06, AF-08, AF-09, AF-10, AF-11, AF-12, AF-13, AF-14, AF-15 |
 
-| AF-17 | [Terminal-only voice conversations and agent-requested spoken replies](https://github.com/nolanmak/Agentflow/issues/17) | M3: Conversation | AF-14, AF-12, AF-05, AF-06 |
+| AF-17 | [Simple terminal speech through Agentflow CLI and one agent tool](https://github.com/nolanmak/Agentflow/issues/17) | M3: Conversation | AF-14, AF-07 |
 
 ## Execution rules
 

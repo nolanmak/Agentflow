@@ -79,4 +79,4 @@ Follow docs/TESTING.md. Work one behavior at a time: failing acceptance-focused 
 
 ## Terminal-only scope
 
-[AF-17](issues/af-17.md) defines browser-free one-shot and persistent speech, terminal microphone input, exact native context, and T01–T14 objective acceptance tests. Current CLI/MCP one-shot speech is implemented; the complete AF-17 workflow remains open.
+[AF-17](issues/af-17.md) is deliberately minimal: existing terminal dictation → existing native agent → Agentflow speak tool/CLI → Mac audio. A skill and dashboard are not required. S01–S08 define objective tests. Custom terminal microphone capture and persistent speech modes are deferred.

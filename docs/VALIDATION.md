@@ -2,7 +2,7 @@
 
 ## Passing evidence
 
-- Node unit/contract/integration suite: 29 tests passed. Covers four speech adapters, redacted provider failures, key isolation, Host/Origin/token protection, exact user text, operation deduplication including native ID migration, authenticated terminal WebSocket input/output, native view lifetime, voice chunks/VAD, MCP clock/tool schemas, and launchd plist paths.
+- Node unit/contract/integration suite: 31 tests passed. Covers four speech adapters, redacted provider failures, key isolation, Host/Origin/token protection, exact user text, operation deduplication including native ID migration, authenticated terminal WebSocket input/output, native view lifetime, voice chunks/VAD, MCP clock/tool schemas, and launchd plist paths.
 - Playwright: 3 browser tests passed with mocked agent/provider endpoints and a fake microphone. Session selection, historical timestamps, provider swaps, recording/submission/playback, and mobile overflow were checked. Desktop screenshot visually reviewed.
 - Real Deepgram TTS → STT: 55,584 bytes of generated audio, successful transcription, macOS `afplay` exit 0. The authorized existing local key was imported into Agentflow Keychain without exposing it.
 - Real Codex SDK compatibility: three turns retained native session identity and remembered two synthetic nonce facts.
@@ -25,6 +25,8 @@ Initial failing suites preceded implementation for provider contracts, native no
 - Canceling an external queued Codex job stops Agentflow waiting/audio; it does not guarantee removal of an already accepted native queue turn.
 - External terminal raw-screen mirroring, prompt-draft/approval races, and all native concurrent-input cases are not certified.
 - Service restart kills service-owned native PTYs. Continuous log rotation and a real login acceptance run remain open.
-- CLI/MCP one-shot local speech works. AF-17 tracks complete browser-free microphone capture, continuous reply mode, native-language mode controls, and all T01–T14 evidence.
+- CLI/MCP one-shot local speech works. AF-17 now tracks only the minimal CLI/MCP speech path with S01–S08 evidence. Custom terminal microphone capture and automatic speech modes are deferred.
 
 No personal transcripts, provider credentials, or recorded user audio are committed. Keep paid live checks opt-in and use disposable native sessions.
+
+CLI/MCP simplification: a browser-free subprocess test proves stdin and MCP send identical literal text to the same endpoint. An MCP failure test was run red, then fixed to return `isError: true` for execution failures. No skill or separate conversation model was added.
