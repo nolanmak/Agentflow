@@ -196,5 +196,19 @@
     "body_file": "af-16.md",
     "url": "https://github.com/nolanmak/Agentflow/issues/16",
     "number": 16
+  },
+  {
+    "code": "AF-17",
+    "title": "AF-17: Terminal-only voice conversations and agent-requested spoken replies",
+    "milestone": "M3: Conversation",
+    "dependencies": [
+      "AF-14",
+      "AF-12",
+      "AF-05",
+      "AF-06"
+    ],
+    "body_file": "af-17.md",
+    "url": "https://github.com/nolanmak/Agentflow/issues/17",
+    "number": 17
   }
 ]

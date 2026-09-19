@@ -16,7 +16,7 @@
 | Question | Owner | Evidence required |
 | --- | --- | --- |
 | Which transport can support a managed terminal and browser on one session? | AF-01 | Native ID round-trip plus concurrent input and approval tests for each installed CLI |
-| Can an arbitrary already-running native terminal accept a supported external controller? | AF-01 | Verified official mechanism and executable test; otherwise explicit legacy handoff |
+| Can an arbitrary already-running native terminal accept a supported external controller? | AF-01 | Verified official mechanism and executable test; otherwise record an unsupported capability; closing the terminal does not satisfy the requirement |
 | Which provider models/voices are enabled with supplied keys? | AF-08–AF-11 | Authenticated discovery or opt-in live request; docs alone do not establish entitlement |
 | Which codecs play consistently in the supported browser? | AF-12 | Fixture-based browser playback and real-device acceptance |
 | How much echo/barge-in filtering is needed? | AF-12/AF-16 | Speaker and headphones tests on the actual Mac |
@@ -28,7 +28,7 @@ Observed locally: Codex 0.154.0 supports `exec resume`; Claude Code 2.1.278 supp
 
 Observed locally: the existing 9Router container uses a loopback mapping at port 20128. Its authenticated speech catalogs were empty. No end-to-end speech success has been claimed.
 
-Proposed, not implemented: TypeScript service, React interface, keychain credential storage, managed terminal wrapper, all `agentflow` commands, voice state machine, and launchd installer.
+Implemented: Node ES-module service, plain browser UI, Keychain, native PTY sharing, CLI/MCP speech, browser voice cycle, and launchd installer. See [ARCHITECTURE.md](ARCHITECTURE.md) and [VALIDATION.md](VALIDATION.md). The initial TypeScript/React proposal was replaced.
 
 ## Documentation consulted
 
@@ -40,3 +40,7 @@ Proposed, not implemented: TypeScript service, React interface, keychain credent
 - Speech endpoint references are in [PROVIDERS.md](PROVIDERS.md).
 
 Sources and local observations checked 2026-09-19. API and CLI details are version-sensitive; recheck the relevant primary reference when implementing its adapter.
+
+## Native input parity correction
+
+Codex native queue passed a live same-process test. Claude private peer inbox wraps input as a peer request, so it is excluded from production voice input. Managed Claude PTY input is the native user path; arbitrary external Claude attachment remains open. No close/resume requirement is accepted as completion. AF-17 adds browser-free speech and microphone criteria.

@@ -1,6 +1,6 @@
 # Implementation backlog
 
-All 16 issues are open. Each includes acceptance criteria, a test-first implementation sequence, dependencies, and completion evidence. Repository: [nolanmak/Agentflow](https://github.com/nolanmak/Agentflow) (private).
+All 17 issues remain open pending complete acceptance evidence. The working implementation and live checks are described in [VALIDATION.md](VALIDATION.md). Each includes acceptance criteria, a test-first implementation sequence, dependencies, and completion evidence. Repository: [nolanmak/Agentflow](https://github.com/nolanmak/Agentflow) (private).
 
 The local issue specifications mirror the initial GitHub issue bodies. GitHub is authoritative for status and discussion; update local specs when scope changes.
 
@@ -22,6 +22,8 @@ The local issue specifications mirror the initial GitHub issue bodies. GitHub is
 | AF-14 | [Add the managed terminal launcher and agent-callable speak tool](https://github.com/nolanmak/Agentflow/issues/14) | M3: Conversation | AF-01, AF-04, AF-05, AF-06, AF-12 |
 | AF-15 | [Package macOS startup, service management, and login autostart](https://github.com/nolanmak/Agentflow/issues/15) | M4: Daily-use release | AF-02, AF-13, AF-14 |
 | AF-16 | [Validate full voice workflows, latency, and release readiness](https://github.com/nolanmak/Agentflow/issues/16) | M4: Daily-use release | AF-05, AF-06, AF-08, AF-09, AF-10, AF-11, AF-12, AF-13, AF-14, AF-15 |
+
+| AF-17 | [Terminal-only voice conversations and agent-requested spoken replies](https://github.com/nolanmak/Agentflow/issues/17) | M3: Conversation | AF-14, AF-12, AF-05, AF-06 |
 
 ## Execution rules
 

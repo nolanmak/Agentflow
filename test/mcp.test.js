@@ -1,0 +1,4 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {execFile} from 'node:child_process';import {spawn} from 'node:child_process';
+test('MCP exposes speech plus accurate clock and timestamped native history tools',async()=>{
+ const p=spawn(process.execPath,['src/cli.js','mcp']);let out='';p.stdout.on('data',x=>out+=x);p.stdin.end([JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/list'}),JSON.stringify({jsonrpc:'2.0',id:2,method:'tools/call',params:{name:'current_time',arguments:{}}})].join('\n')+'\n');await new Promise((r,j)=>{p.on('close',r);p.on('error',j)});const results=out.trim().split('\n').map(JSON.parse);assert.deepEqual(results[0].result.tools.map(x=>x.name),['speak','current_time','session_history']);const now=JSON.parse(results[1].result.content[0].text);assert.ok(Math.abs(Date.now()-Date.parse(now.utc))<5000);assert.ok(now.timezone);assert.ok(now.local);
+});

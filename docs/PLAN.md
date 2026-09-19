@@ -1,6 +1,6 @@
 # Agentflow product and delivery plan
 
-Date: 2026-09-19. Status: proposed implementation, grounded in local CLI inspection and official API documentation.
+Date: 2026-09-19. Status: working local implementation; release criteria still in progress. See [VALIDATION.md](VALIDATION.md) for observed results.
 
 ## Outcome
 
@@ -8,7 +8,7 @@ Nolan can work in a terminal, open a localhost dashboard, select the same Claude
 
 ## Main journeys
 
-1. **Existing session:** open Agentflow, filter by agent/project, select a session, see whether it is available or owned by a terminal, complete any required handoff, start talking, hear the reply, and return to the terminal with the same session ID and history.
+1. **Existing session:** open Agentflow, filter by agent/project, select a session, start talking while its original terminal stays open, and see both views reflect the same native conversation. Unsupported attachment must be reported explicitly; a close/resume handoff does not satisfy this requirement.
 2. **Managed live session:** start the terminal through `agentflow run codex|claude`. Agentflow owns the process/transport; terminal and dashboard share one conversation and serialize turns. No second independent agent is spawned to handle a voice turn.
 3. **Speak from an agent:** call `agentflow speak` or the Agentflow MCP `speak` tool to send text to the active local output device. A dashboard audio sink is preferred; local macOS playback covers a closed dashboard.
 4. **BYOK:** add a provider key, choose the input provider/model and output provider/model/voice separately, test them, and save. Change either provider between turns without changing agent sessions.
@@ -20,7 +20,7 @@ Nolan can work in a terminal, open a localhost dashboard, select the same Claude
 | --- | --- |
 | Agents | Claude Code and Codex using installed, authenticated CLIs |
 | Sessions | Discover saved sessions; preserve ID, project, latest conversation, and tool permissions |
-| Terminal continuity | Managed live sessions; explicit safe handoff for legacy sessions where live attachment is unsupported |
+| Terminal continuity | Simultaneous native terminal/dashboard conversation; unsupported external attachment is a tracked gap |
 | Speech input | OpenAI, Deepgram, ElevenLabs, 9Router; recorded utterances first, streaming where supported |
 | Speech output | OpenAI, Deepgram, ElevenLabs, 9Router; cancelable queued audio with provider/voice selection |
 | Conversation | Push-to-talk and hands-free conversation; end call, interrupt, retry, hidden/visible transcript |
@@ -56,7 +56,7 @@ Issues AF-15–AF-16. Install/start/status/stop/uninstall support, launchd login
 
 ## Success criteria
 
-- A remembered fact supplied in the terminal is available in a voice turn; a fact supplied by voice is available after terminal resumption. Identity stays identical.
+- A remembered fact supplied in the terminal is available in a voice turn; a fact supplied by voice is available in the still-running terminal. Identity stays identical.
 - No duplicate agent turn is dispatched on browser retry/reconnect; no two writers can modify one session concurrently.
 - OpenAI STT + ElevenLabs TTS, Deepgram STT + OpenAI TTS, and 9Router configurations are independently selectable and pass contract tests.
 - The dashboard announces listening/thinking/speaking/error states; stop releases microphone tracks and interrupts playback.
@@ -75,4 +75,8 @@ Follow docs/TESTING.md. Work one behavior at a time: failing acceptance-focused 
 - Both expose resume/session mechanisms. Those mechanisms alone do not prove simultaneous attachment to an existing interactive process.
 - Existing 9Router is a Docker container at loopback port 20128. Discovery requires an API key. Its authenticated STT and TTS model catalogs were empty during inspection: no working speech route has been verified.
 - Existing native agent histories are available locally. They must never be committed to the repo or used as public fixtures.
-- No speech provider keys need to be shared in chat; the future settings interface handles BYOK locally.
+- Speech keys are handled by the local settings interface and macOS Keychain; no keys are needed in chat.
+
+## Terminal-only scope
+
+[AF-17](issues/af-17.md) defines browser-free one-shot and persistent speech, terminal microphone input, exact native context, and T01–T14 objective acceptance tests. Current CLI/MCP one-shot speech is implemented; the complete AF-17 workflow remains open.

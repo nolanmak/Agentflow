@@ -1,45 +1,73 @@
 # Agentflow
 
-A localhost voice dashboard for your existing Claude Code and Codex sessions. Type in the terminal, select that session in Agentflow, talk, and hear the agent answer aloud.
+Speak to native Codex and Claude Code sessions on your Mac. The local service provides speech input/output, a session dashboard, and terminal/MCP speech tools.
 
-[Private GitHub repository](https://github.com/nolanmak/Agentflow) · [Implementation issues](https://github.com/nolanmak/Agentflow/issues)
+[Dashboard](http://127.0.0.1:4317) · [Private repository](https://github.com/nolanmak/Agentflow) · [Issues](https://github.com/nolanmak/Agentflow/issues) · [Validation and limitations](docs/VALIDATION.md)
 
-**Status: planning.** The documents and GitHub backlog describe the product to build; there is no running Agentflow application yet. Commands below are proposed interfaces, not installed commands.
+## Run
 
-## What we are building
-
-- One searchable session menu for Claude Code and Codex, with project, title, activity, and ownership state.
-- Speech-to-text → the actual agent session → text-to-speech. Agent context, tools, and identity stay with the agent.
-- Independent, bring-your-own-key speech providers: OpenAI, Deepgram, ElevenLabs, and 9Router. Use one provider for listening and another for speaking; swap without losing the conversation.
-- Voice-first conversation with optional transcript, push-to-talk, hands-free turn detection, interrupt, and explicit microphone state.
-- A terminal command and agent-callable speech tool for reading text aloud, even without opening a voice conversation.
-- A macOS login service that keeps the localhost dashboard available.
-
-## Start here
-
-- [Product and delivery plan](docs/PLAN.md)
-- [Architecture and session continuity](docs/ARCHITECTURE.md)
-- [Speech providers and BYOK](docs/PROVIDERS.md)
-- [Test-driven development strategy](docs/TESTING.md)
-- [Implementation backlog](docs/ISSUES.md)
-- [Decisions, uncertainties, and source references](docs/DECISIONS.md)
-
-## Intended commands
+Requires macOS, Node 22+, and installed/authenticated native `codex` and `claude` CLIs. Tested locally with Node 26.5.1.
 
 ```sh
-agentflow start                         # run the local service
-agentflow open                          # open the dashboard
-agentflow run codex                     # terminal session managed by Agentflow
-agentflow run claude                    # terminal session managed by Agentflow
-agentflow open --agent codex --session <id>
+npm ci
+node src/cli.js service install
+node src/cli.js open
+```
+
+On the original Mac, `~/.local/bin/agentflow` is already installed and login startup is enabled. The microphone remains off until explicitly started.
+
+```sh
+agentflow run codex             # native terminal shared with the dashboard
+agentflow run claude
+agentflow run codex --resume NATIVE_SESSION_UUID
 agentflow speak --text "The tests passed."
-agentflow service install               # start at macOS login
+printf 'The tests passed.\n' | agentflow speak
 agentflow service status
+agentflow service restart
 agentflow service uninstall
 ```
 
-These commands are acceptance targets. See the backlog for implementation status. `service install` is opt-in and never opens the microphone at login.
+`Ctrl+]` detaches an Agentflow terminal view and leaves its native process running. Service restart/stop terminates processes that service owns, so detach does not mean restarting the service is safe for an active turn.
 
-## Development policy
+## Same native conversation
 
-Use red → green → refactor for each behavioral change. Every issue includes observable acceptance criteria and a focused test plan. Mock external APIs in ordinary tests; real credentials and real microphone tests are explicit opt-in checks. Never commit keys, local session histories, or recorded audio.
+Agentflow-managed sessions have one native CLI process with terminal and browser views. User transcripts go unchanged into that process; no separate inference model or voice persona is inserted. Native tools, settings, cwd, and approvals remain in the native CLI. Approve native permission/trust prompts in its terminal panel.
+
+Already-running external **Codex** sessions accept voice through native `codex queue`; the existing terminal stays open. This was tested live. Raw screen mirroring is available for Agentflow-managed terminals; external sessions synchronize conversation history.
+
+Already-running external **Claude** sessions do not yet have a verified equivalent user-input attachment. Claude's private peer inbox adds a peer envelope, so it is deliberately excluded from production voice input. It does not satisfy exact user-message parity. The existing process is never silently stopped or forked. Claude launched with `agentflow run claude` uses its actual native terminal input. Claude's local weekly usage limit prevented a successful model-response test.
+
+The transcript preview shows the last 40 readable native messages with original timestamps. It is not fed back as a replacement for native context. Native compaction/context limits still apply.
+
+## Speech providers
+
+Speech & settings selects STT and TTS independently: Deepgram, OpenAI, ElevenLabs, or 9Router. Keys are stored in macOS Keychain (`com.agentflow.speech`); the browser receives configured/not-configured status only. Keys may also be supplied through explicitly configured server environment variables. No keys belong in this repository.
+
+Deepgram STT/TTS were tested live using the authorized local key. OpenAI, ElevenLabs, and 9Router pass mocked request/response tests; working live credentials/routes were not established. 9Router's inspected speech catalogs were empty. Agentflow does not start its Docker container automatically.
+
+Hands-free browser mode records an utterance, transcribes it, sends it to the native agent, plays the reply, then listens again. It is half-duplex; use Interrupt to stop speech. Physical microphone/echo acceptance remains outstanding.
+
+## Speak directly from an agent
+
+The MCP server provides `speak`, `current_time`, and `session_history`. Tools are registered for both CLIs on the original Mac. For another installation, use absolute executable/file paths:
+
+```sh
+codex mcp add agentflow -- /absolute/path/to/node /absolute/path/to/Agentflow/src/cli.js mcp
+claude mcp add --scope user agentflow -- /absolute/path/to/node /absolute/path/to/Agentflow/src/cli.js mcp
+```
+
+[Official Codex MCP configuration](https://developers.openai.com/codex/mcp). Refresh tools using the native client's supported flow when adding tools to an already-running session; Agentflow never closes it automatically.
+
+Ask: **“Use Agentflow to read your answer aloud.”** The `speak` tool plays through the Mac's audio device even with the dashboard closed. Persistent spoken-reply mode and terminal microphone conversation are scoped, with objective TDD criteria, in [issue #17](https://github.com/nolanmak/Agentflow/issues/17); they are not yet complete.
+
+## Verification
+
+```sh
+npm test
+npm run check
+npm run test:e2e               # requires running service; mocked speech/agent API
+node scripts/live-pipeline.js # opt-in paid Deepgram + disposable native Codex
+npm run test:live             # opt-in real speech and native Codex queue checks
+```
+
+`npx playwright install chromium` installs the browser test runtime. Live checks use synthetic prompts and disposable sessions, not personal conversations. See [the plan](docs/PLAN.md), [architecture](docs/ARCHITECTURE.md), [TDD policy](docs/TESTING.md), and [backlog](docs/ISSUES.md).
