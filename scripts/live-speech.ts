@@ -28,7 +28,10 @@ const t = await transcribe(
   r.mime,
 );
 console.log("Deepgram STT round trip:", t.text);
-if (!t.text.toLowerCase().includes("agentflow"))
+// Speech recognition may insert whitespace into the product name ("Agent Flow").
+// The round trip proves the intended phrase as long as punctuation and whitespace
+// normalize to the same value.
+if (!t.text.toLowerCase().replace(/[^a-z0-9]/g, "").includes("agentflow"))
   throw Error("Speech round trip did not recognize expected text");
 const dir = await mkdtemp(join(tmpdir(), "agentflow-audio-"));
 try {
