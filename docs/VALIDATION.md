@@ -44,7 +44,9 @@ Tests were run red before implementation: the preview configuration export was m
 - Final compiled live pipeline passed: exact Deepgram transcription reached the same native Codex PID, the synthetic remembered word was returned, both WebSocket views updated, timestamps were present, and 6,048 bytes of Helena audio played via `afplay`. No personal session was used.
 - Installed CLI symlink, launchd definition, Codex MCP entry, and Claude MCP entry now point to `dist/src/`. Before service replacement, authenticated inspection reported zero active jobs and zero live managed terminals. Unrelated native sessions were not restarted. Deepgram remained configured and the saved Helena voice remained selected.
 - Production HTTP checks returned 200 for HTML, compiled app, shared contracts, DOM helper, and xterm assets. No TypeScript loader is required by the compiled runtime.
-- GitHub CI is configured for Node 26.5.1, clean install, typecheck, compiled tests/build, and Chromium browser tests. CI execution is recorded with the issue after push.
+- GitHub CI is configured for Node 26.5.1, clean install, typecheck, compiled tests/build, and Chromium browser tests. [The first hosted run](https://github.com/nolanmak/Agentflow/actions/runs/35479267243) was blocked before any steps started: GitHub reported failed account payments or an insufficient spending limit. Hosted CI is not counted as passing; AF-19 remains open for that criterion.
 - Gitleaks scanned published history and the clean current source export with zero findings. This does not erase owner-accepted historical author identity or establish that every possible form of PII is detectable. No history rewrite was performed.
 
 Claude live response limitations and physical microphone acceptance remain as listed above; this migration does not claim to resolve those separate release gaps.
+
+Production-only dependency verification also passed after `npm prune --omit=dev`: compiled CLI ran and the server served HTML, application modules, and xterm assets with the TypeScript package absent.
