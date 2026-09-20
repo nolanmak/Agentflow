@@ -2,19 +2,22 @@
 
 Speak to native Codex and Claude Code sessions on your Mac. The local service provides speech input/output, a session dashboard, and terminal/MCP speech tools.
 
-[Dashboard](http://127.0.0.1:4317) · [Private repository](https://github.com/nolanmak/Agentflow) · [Issues](https://github.com/nolanmak/Agentflow/issues) · [Validation and limitations](docs/VALIDATION.md)
+[Dashboard](http://127.0.0.1:4317) · [Repository](https://github.com/nolanmak/Agentflow) · [Issues](https://github.com/nolanmak/Agentflow/issues) · [Validation and limitations](docs/VALIDATION.md)
 
 ## Run
 
-Requires macOS, Node 22+, and installed/authenticated native `codex` and `claude` CLIs. Tested locally with Node 26.5.1.
+Requires macOS, Node 22.18 or newer, and installed/authenticated native `codex` and `claude` CLIs. Tested locally with Node 26.5.1.
 
 ```sh
 npm ci
-node src/cli.js service install
-node src/cli.js open
+npm run build
+mkdir -p "$HOME/.local/bin"
+ln -sf "$PWD/dist/src/cli.js" "$HOME/.local/bin/agentflow"
+node dist/src/cli.js service install
+node dist/src/cli.js open
 ```
 
-On the original Mac, `~/.local/bin/agentflow` is already installed and login startup is enabled. The microphone remains off until explicitly started.
+Add `~/.local/bin` to your shell PATH to use `agentflow`. The install command enables login startup. The microphone remains off until explicitly started.
 
 ```sh
 agentflow run codex             # native terminal shared with the dashboard
@@ -51,11 +54,11 @@ Hands-free browser mode records an utterance, transcribes it, sends it to the na
 
 ## Speak directly from an agent
 
-The MCP server provides `speak`, `current_time`, and `session_history`. Tools are registered for both CLIs on the original Mac. For another installation, use absolute executable/file paths:
+The MCP server provides `speak`, `current_time`, and `session_history`. Register it with each native CLI using absolute executable/file paths:
 
 ```sh
-codex mcp add agentflow -- /absolute/path/to/node /absolute/path/to/Agentflow/src/cli.js mcp
-claude mcp add --scope user agentflow -- /absolute/path/to/node /absolute/path/to/Agentflow/src/cli.js mcp
+codex mcp add agentflow -- /absolute/path/to/node /absolute/path/to/Agentflow/dist/src/cli.js mcp
+claude mcp add --scope user agentflow -- /absolute/path/to/node /absolute/path/to/Agentflow/dist/src/cli.js mcp
 ```
 
 [Official Codex MCP configuration](https://developers.openai.com/codex/mcp). Refresh tools using the native client's supported flow when adding tools to an already-running session; Agentflow never closes it automatically.
@@ -66,12 +69,14 @@ Ask: **“Use Agentflow to read your answer aloud.”** The `speak` tool plays t
 
 ```sh
 npm test
-npm run check
-npm run test:e2e               # requires running service; mocked speech/agent API
-node scripts/live-pipeline.js # opt-in paid Deepgram + disposable native Codex
+npm run typecheck
+npm run test:e2e               # starts isolated test server; mocked speech/agent API
+node dist/scripts/live-pipeline.js # opt-in paid Deepgram + disposable native Codex
 npm run test:live             # opt-in real speech and native Codex queue checks
 ```
 
 `npx playwright install chromium` installs the browser test runtime. Live checks use synthetic prompts and disposable sessions, not personal conversations. See [the plan](docs/PLAN.md), [architecture](docs/ARCHITECTURE.md), [TDD policy](docs/TESTING.md), and [backlog](docs/ISSUES.md).
 
-TypeScript migration is tracked in [AF-19](https://github.com/nolanmak/Agentflow/issues/19). Public-release preparation is documented in [PRIVACY.md](docs/PRIVACY.md); the repository remains private while historical metadata is cleaned.
+Handwritten application, browser, scripts, and tests are strict TypeScript. `npm run build` emits JavaScript and source maps under ignored `dist/`; Node runs those compiled files without TypeScript tooling. `npm run dev` builds and starts the service. CI uses Node 26.5.1 and runs typecheck, compiled unit/integration tests, and Playwright.
+
+For existing installations, see [the compiled-entrypoint migration](docs/TYPESCRIPT.md). Public-release preparation and accepted historical identity metadata are documented in [PRIVACY.md](docs/PRIVACY.md). Repository visibility remains private until separately changed. No open-source license has been selected yet.

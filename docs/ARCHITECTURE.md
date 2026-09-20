@@ -1,6 +1,6 @@
 # Implemented architecture
 
-Agentflow is a loopback Node ES-module HTTP/WebSocket service with a plain browser module UI, xterm terminal view, Node test runner, and Playwright. Dependencies are pinned in package-lock.json. The earlier TypeScript/React proposal was not implemented.
+Agentflow is a loopback Node ES-module HTTP/WebSocket service with a plain browser module UI, xterm terminal view, Node test runner, and Playwright. Dependencies are pinned in package-lock.json. Source is strict TypeScript, compiled into `dist/`; no frontend framework is required. Shared contracts validate HTTP, WebSocket, native JSON, and persisted job data before use.
 
 ## Native session ownership
 
@@ -8,7 +8,7 @@ Agentflow is a loopback Node ES-module HTTP/WebSocket service with a plain brows
 
 Codex assigns the real native session UUID after startup; the provisional launcher ID becomes an alias. Jobs preserve the original request ID for retry deduplication while reporting the real native session ID. The live queue lets an external Codex process receive an exact user turn without exit/resume or another inference process.
 
-Claude managed sessions use actual native terminal input. External Claude peer inbox research found native peer wrapping, so the private inbox is NOT used by the production input path. `scripts/live-claude-inbox.js` is an opt-in compatibility research check, not evidence of user-input parity. External Claude attachment remains incomplete. Do not add a handoff warning as a substitute for simultaneous continuity.
+Claude managed sessions use actual native terminal input. External Claude peer inbox research found native peer wrapping, so the private inbox is NOT used by the production input path. `dist/scripts/live-claude-inbox.js` is an opt-in compatibility research check, not evidence of user-input parity. External Claude attachment remains incomplete. Do not add a handoff warning as a substitute for simultaneous continuity.
 
 Native JSONL histories are read only for UI preview and response observation. Preview is bounded to 1 MB/40 messages; native inference retains its own context. Agentflow adds no hidden voice prompt, copied transcript, or alternate model. Timestamped native records and the `current_time` MCP tool provide explicit time data; missing native data must not be invented.
 

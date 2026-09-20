@@ -1,2 +1,0 @@
-import {test} from 'node:test';import assert from 'node:assert/strict';import {plist} from '../src/service.js';
-test('launchd config uses absolute paths safely and starts no microphone',()=>{const xml=plist('/path with spaces/node','/Users/Me/A&B/Agentflow/src/server.js','/Users/Me/Library/Logs/Agentflow');assert.ok(xml.includes('/path with spaces/node'));assert.ok(xml.includes('A&amp;B'));assert.ok(xml.includes('<key>RunAtLoad</key><true/>'));assert.ok(!xml.includes('microphone'));assert.ok(!xml.includes('0.0.0.0'));});

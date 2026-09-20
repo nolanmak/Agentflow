@@ -1,0 +1,27 @@
+import { isProvider } from "../public/contracts.js";
+import { readFile } from "node:fs/promises";
+import { KeyStore } from "../src/store.js";
+const [file, provider = "deepgram", name = "DEEPGRAM_API_KEY"] =
+  process.argv.slice(2);
+if (!file)
+  throw Error(
+    "Usage: node dist/scripts/import-key.js /path/to/.env [provider] [variable]",
+  );
+const line = (await readFile(file, "utf8"))
+  .split("\n")
+  .find((x) => x.trim().startsWith(name + "="));
+if (!line) throw Error("Requested key was not found");
+let key = line.slice(line.indexOf("=") + 1).trim();
+if (
+  (key.startsWith('"') && key.endsWith('"')) ||
+  (key.startsWith("'") && key.endsWith("'"))
+)
+  key = key.slice(1, -1);
+const store = new KeyStore();
+if (!isProvider(provider)) throw Error("Invalid provider");
+await store.set(provider, key);
+if ((await new KeyStore().get(provider)) !== key)
+  throw Error("Keychain verification failed");
+console.log(
+  `${provider} key imported into macOS Keychain and verified; value not displayed.`,
+);

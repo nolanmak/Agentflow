@@ -1,0 +1,74 @@
+import { homedir } from "node:os";
+import { join, dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { mkdir, writeFile, unlink, stat, rename } from "node:fs/promises";
+import { exec } from "./store.js";
+const label = "com.agentflow.local";
+const file = join(homedir(), "Library/LaunchAgents", label + ".plist");
+const logs = join(homedir(), "Library/Logs/Agentflow");
+const xml = (s: string) =>
+  s
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+export function plist(node: string, entry: string, logDir: string) {
+  return `<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>Label</key><string>${label}</string><key>ProgramArguments</key><array><string>${xml(node)}</string><string>${xml(entry)}</string></array><key>WorkingDirectory</key><string>${xml(resolve(dirname(entry), ".."))}</string><key>EnvironmentVariables</key><dict><key>PATH</key><string>${xml(dirname(node) + ":" + homedir() + "/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin")}</string></dict><key>RunAtLoad</key><true/><key>KeepAlive</key><true/><key>ThrottleInterval</key><integer>10</integer><key>StandardOutPath</key><string>${xml(logDir + "/service.log")}</string><key>StandardErrorPath</key><string>${xml(logDir + "/error.log")}</string></dict></plist>`;
+}
+export async function service(action: string) {
+  const domain = "gui/" + process.getuid!();
+  if (action === "install") {
+    await mkdir(dirname(file), { recursive: true });
+    await mkdir(logs, { recursive: true, mode: 0o700 });
+    for (const n of ["service.log", "error.log"]) {
+      const p = join(logs, n);
+      try {
+        if ((await stat(p)).size > 2 * 1024 * 1024) await rename(p, p + ".old");
+      } catch {}
+    }
+    await writeFile(
+      file,
+      plist(
+        process.execPath,
+        join(dirname(fileURLToPath(import.meta.url)), "server.js"),
+        logs,
+      ),
+      { mode: 0o600 },
+    );
+    try {
+      await exec("/bin/launchctl", ["print", domain + "/" + label]);
+      return "Agentflow is already installed and running.";
+    } catch {}
+    await exec("/bin/launchctl", ["bootstrap", domain, file]);
+    return "Agentflow starts automatically at macOS login. http://127.0.0.1:4317";
+  }
+  if (action === "uninstall") {
+    try {
+      await exec("/bin/launchctl", ["bootout", domain + "/" + label]);
+    } catch {}
+    await unlink(file).catch(() => {});
+    return "Agentflow login service removed. Sessions and keys preserved.";
+  }
+  if (action === "restart") {
+    await exec("/bin/launchctl", ["kickstart", "-k", domain + "/" + label]);
+    return "Agentflow restarted.";
+  }
+  if (action === "stop") {
+    await exec("/bin/launchctl", ["bootout", domain + "/" + label]);
+    return "Agentflow service stopped. Use service install to start again.";
+  }
+  try {
+    const { stdout } = await exec("/bin/launchctl", [
+      "print",
+      domain + "/" + label,
+    ]);
+    return (
+      stdout
+        .split("\n")
+        .filter((l) => /state =|pid =|last exit code =/.test(l))
+        .join("\n") || "Service installed."
+    );
+  } catch {
+    return "Agentflow login service is not running.";
+  }
+}

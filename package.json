@@ -4,20 +4,22 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.18"
   },
   "bin": {
-    "agentflow": "./src/cli.js"
+    "agentflow": "./dist/src/cli.js"
   },
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node src/server.js",
-    "test": "node --test test/*.test.js",
+    "start": "node dist/src/server.js",
+    "dev": "npm run build && npm start",
+    "test": "npm run build && node --test dist/test/*.test.js",
     "test:e2e": "playwright test",
-    "check": "node --check src/server.js && node --check public/app.js",
-    "test:live": "node scripts/live-speech.js && node scripts/live-terminal.js",
-    "postinstall": "node scripts/prepare-pty.js",
-    "test:live:claude": "node scripts/live-claude-inbox.js"
+    "check": "npm run typecheck",
+    "test:live": "node dist/scripts/live-speech.js && node dist/scripts/live-terminal.js",
+    "postinstall": "node scripts/prepare-pty.ts",
+    "test:live:claude": "node dist/scripts/live-claude-inbox.js",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc && node dist/scripts/build-assets.js"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.278",
@@ -27,7 +29,11 @@
     "ws": "8.21.3"
   },
   "devDependencies": {
-    "@playwright/test": "1.63.0"
+    "@playwright/test": "1.63.0",
+    "@types/node": "26.6.2",
+    "@types/ws": "8.18.1",
+    "prettier": "3.9.8",
+    "typescript": "7.0.2"
   },
   "allowScripts": {
     "node-pty@1.1.0": true

@@ -28,7 +28,7 @@ Observed locally: Codex 0.154.0 supports `exec resume`; Claude Code 2.1.278 supp
 
 Observed locally: the existing 9Router container uses a loopback mapping at port 20128. Its authenticated speech catalogs were empty. No end-to-end speech success has been claimed.
 
-Implemented: Node ES-module service, plain browser UI, Keychain, native PTY sharing, CLI/MCP speech, browser voice cycle, and launchd installer. See [ARCHITECTURE.md](ARCHITECTURE.md) and [VALIDATION.md](VALIDATION.md). The initial TypeScript/React proposal was replaced.
+Implemented: Node ES-module service, plain browser UI, Keychain, native PTY sharing, CLI/MCP speech, browser voice cycle, and launchd installer. See [ARCHITECTURE.md](ARCHITECTURE.md) and [VALIDATION.md](VALIDATION.md). The UI uses plain browser modules instead of React. AF-19 migrated application, browser, scripts, and tests to strict TypeScript with compiled JavaScript output.
 
 ## Documentation consulted
 

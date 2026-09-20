@@ -1,0 +1,41 @@
+import { KeyStore } from "../src/store.js";
+import { synthesize, transcribe } from "../src/speech.js";
+import { writeFile, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { exec } from "../src/store.js";
+const key = await new KeyStore().get("deepgram");
+const phrase =
+  process.argv.slice(2).join(" ") ||
+  "Hello. Agentflow can speak now. This is Deepgram, using your existing key. I am building the session dashboard and testing the voice loop.";
+const start = Date.now();
+const r = await synthesize(
+  { provider: "deepgram", model: "aura-2-helena-en" },
+  key,
+  phrase,
+);
+console.log(
+  "Deepgram TTS passed:",
+  r.audio.length,
+  "bytes;",
+  Date.now() - start,
+  "ms",
+);
+const t = await transcribe(
+  { provider: "deepgram", model: "nova-3" },
+  key,
+  r.audio,
+  r.mime,
+);
+console.log("Deepgram STT round trip:", t.text);
+if (!t.text.toLowerCase().includes("agentflow"))
+  throw Error("Speech round trip did not recognize expected text");
+const dir = await mkdtemp(join(tmpdir(), "agentflow-audio-"));
+try {
+  const p = join(dir, "voice.mp3");
+  await writeFile(p, r.audio, { mode: 0o600 });
+  await exec("/usr/bin/afplay", [p], { timeout: 60000 });
+  console.log("macOS afplay completed successfully.");
+} finally {
+  await rm(dir, { recursive: true, force: true });
+}

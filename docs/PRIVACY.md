@@ -7,7 +7,7 @@ The repository is private while this audit is in progress. A clean latest commit
 - Gitleaks 8.30.1 scanned the original three commits with default credential rules and reported no detected secrets. This is a scanner result, not proof that no possible secret exists.
 - Direct value comparison against configured local speech credentials found no committed credential values during the implementation push.
 - Personalized sample/test wording and a product-plan name were found and replaced with generic text. No user conversation is needed in fixtures.
-- Earlier commit metadata contains a personal email and real author name. Future commits use a public project identity and GitHub no-reply email. Existing history still requires rewriting before public visibility is enabled.
+- Earlier commit metadata contains a personal email and real author name. Future commits use a public project identity and GitHub no-reply email. The owner explicitly accepts existing personal email/author metadata; no history rewrite is planned. This exception does not authorize adding private personal data in future changes.
 - GitHub issue bodies/comments were checked for known personal identifiers, machine addresses, and personal paths. Repository/account links intentionally identify the public GitHub project; these are not private infrastructure addresses.
 - Audio auditions, runtime tokens, keys, personal native histories, local settings, and test screenshots are excluded from source control. The application's runtime data remains on the user's own machine.
 
@@ -27,9 +27,8 @@ Do not publish raw scanner reports that might contain matched secrets. Do not co
 ## Publication gate
 
 1. Confirm the intended open-source license; none has been selected yet.
-2. Scrub identifying file content and author/committer metadata from all published refs, with a private recovery backup.
-3. Validate the rewritten history and current tree; inspect GitHub issues, comments, releases, and artifacts.
-4. Replace published history only with explicit approval because commit IDs change and existing clones must be reconciled. GitHub-retained old objects may require separate removal; rewriting a branch alone is not an absolute erasure guarantee.
-5. Verify the sanitized remote, then change visibility only when publication is authorized.
+2. Scan the current tree and all published history for credentials. Keep the owner-accepted historical author identity and earlier personalized sample wording; do not force-push a rewrite.
+3. Review new file content, issues, comments, releases, and artifacts for private paths, infrastructure addresses, keys, and real transcripts.
+4. Verify the remote and change visibility only when publication is authorized.
 
 No history rewrite or public-visibility switch is implied by a passing scan.

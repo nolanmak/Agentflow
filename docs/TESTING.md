@@ -22,7 +22,7 @@ Do not write the whole implementation and retroactively label tests TDD. Do not 
 | Opt-in live smoke | Installed CLI compatibility, native session round trip, provider formats, real audio | Dedicated disposable sessions and explicit credentials |
 | Manual device | Microphone permission, echo/barge-in, audible output, sleep/wake, login startup | Human checklist, result recorded honestly |
 
-Suggested tools: Vitest, Playwright, HTTP/WebSocket test servers, fake keychain adapter. Pick dependencies in AF-02 and pin them. Do not replace every failure boundary with shallow mocks; contract tests inspect actual outbound provider requests and streamed responses.
+Implemented tools: the Node test runner, Playwright, HTTP/WebSocket test servers, and fake keychain adapters. Dependencies are pinned. Do not replace every failure boundary with shallow mocks; contract tests inspect actual outbound provider requests and streamed responses.
 
 ## Required scenarios
 
