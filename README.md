@@ -79,4 +79,4 @@ npm run test:live             # opt-in real speech and native Codex queue checks
 
 Handwritten application, browser, scripts, and tests are strict TypeScript. `npm run build` emits JavaScript and source maps under ignored `dist/`; Node runs those compiled files without TypeScript tooling. `npm run dev` builds and starts the service. CI uses Node 26.5.1 and runs typecheck, compiled unit/integration tests, and Playwright.
 
-For existing installations, see [the compiled-entrypoint migration](docs/TYPESCRIPT.md). Public-release preparation and accepted historical identity metadata are documented in [PRIVACY.md](docs/PRIVACY.md). Repository visibility remains private until separately changed. No open-source license has been selected yet.
+For existing installations, see [the compiled-entrypoint migration](docs/TYPESCRIPT.md). Agentflow is released under the [MIT License](LICENSE). The public-release privacy review and the owner-accepted historical identity metadata are documented in [PRIVACY.md](docs/PRIVACY.md).

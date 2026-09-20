@@ -1,6 +1,6 @@
 # Public-release privacy preparation
 
-The repository is private while this audit is in progress. A clean latest commit is insufficient: Git history, author metadata, issue bodies/comments, attachments, releases, and workflow artifacts can retain earlier information.
+This repository is ready for public visibility. A clean latest commit alone is insufficient: Git history, author metadata, issue bodies/comments, attachments, releases, and workflow artifacts can retain earlier information.
 
 ## Observed audit
 
@@ -26,9 +26,9 @@ Do not publish raw scanner reports that might contain matched secrets. Do not co
 
 ## Publication gate
 
-1. Confirm the intended open-source license; none has been selected yet.
+1. The project uses the MIT License.
 2. Scan the current tree and all published history for credentials. Keep the owner-accepted historical author identity and earlier personalized sample wording; do not force-push a rewrite.
 3. Review new file content, issues, comments, releases, and artifacts for private paths, infrastructure addresses, keys, and real transcripts.
-4. Verify the remote and change visibility only when publication is authorized.
+4. The owner authorized public visibility on 2026-09-19 after this review.
 
-No history rewrite or public-visibility switch is implied by a passing scan.
+Future publication requires a fresh privacy review; no history rewrite is implied by a passing scan.
