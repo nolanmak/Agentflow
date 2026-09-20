@@ -1,5 +1,6 @@
+import {deepgramVoice} from '../public/deepgram-voices.js';
 export const providers=['deepgram','openai','elevenlabs','9router'];
-export const defaults={deepgram:{stt:'nova-3',tts:'aura-2-thalia-en',voice:''},openai:{stt:'gpt-4o-mini-transcribe',tts:'gpt-4o-mini-tts',voice:'coral'},elevenlabs:{stt:'scribe_v2',tts:'eleven_flash_v2_5',voice:''},'9router':{stt:'',tts:'',voice:''}};
+export const defaults={deepgram:{stt:'nova-3',tts:'aura-2-helena-en',voice:''},openai:{stt:'gpt-4o-mini-transcribe',tts:'gpt-4o-mini-tts',voice:'coral'},elevenlabs:{stt:'scribe_v2',tts:'eleven_flash_v2_5',voice:''},'9router':{stt:'',tts:'',voice:''}};
 export function failure(code,message,status=400){return Object.assign(new Error(message),{code,status});}
 function config(c,key){
  if(!providers.includes(c.provider))throw failure('invalid_provider','Unknown speech provider');
@@ -40,4 +41,10 @@ export async function synthesize(c,key,text,signal,fetcher=fetch){
  const reader=r.body.getReader();let size=0;const chunks=[];try{while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>24*1024*1024)throw failure('too_large','Speech output exceeded 24 MB');chunks.push(Buffer.from(value));}}finally{await reader.cancel().catch(()=>{})}
  if(!size)throw failure('malformed_response','Speech provider returned empty audio',502);
  return {audio:Buffer.concat(chunks),mime:mime==='application/octet-stream'?'audio/mpeg':mime};
+}
+
+export function previewConfig(config,model){
+ if(model===undefined)return {...config};
+ if(config.provider!=='deepgram'||typeof model!=='string'||!deepgramVoice(model))throw failure('invalid_preview','Choose a listed Deepgram voice to preview');
+ return {...config,model};
 }

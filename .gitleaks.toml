@@ -1,0 +1,20 @@
+[extend]
+useDefault = true
+
+[[rules]]
+id = "personal-email"
+description = "Personal mailbox in source or documentation"
+regex = '''(?i)\b[A-Z0-9._%+-]+@(gmail\.com|icloud\.com|outlook\.com|hotmail\.com|yahoo\.com)\b'''
+
+[[rules]]
+id = "personal-home-path"
+description = "Personal home directory; use an explicit example placeholder"
+regex = '''/(Users|home)/[A-Za-z0-9._-]+/'''
+[[rules.allowlists]]
+regexTarget = "match"
+regexes = ['''/(Users|home)/(you|Me|user|USER|example|username)/''']
+
+[[rules]]
+id = "tailnet-address"
+description = "Private Tailscale address in a public artifact"
+regex = '''\b100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.[0-9]{1,3}\.[0-9]{1,3}\b'''

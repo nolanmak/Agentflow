@@ -4,7 +4,7 @@ Date: 2026-09-19. Status: working local implementation; release criteria still i
 
 ## Outcome
 
-Nolan can work in a terminal, open a localhost dashboard, select the same Claude Code or Codex session, speak naturally, and hear that agent respond. Returning to the terminal preserves the conversation. Agentflow provides the voice transport and session controls; the original agent still owns reasoning and tools.
+A user can work in a terminal, open a localhost dashboard, select the same Claude Code or Codex session, speak naturally, and hear that agent respond. Returning to the terminal preserves the conversation. Agentflow provides the voice transport and session controls; the original agent still owns reasoning and tools.
 
 ## Main journeys
 

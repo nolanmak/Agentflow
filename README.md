@@ -41,6 +41,8 @@ The transcript preview shows the last 40 readable native messages with original 
 
 ## Speech providers
 
+With a Deepgram key configured, Speech & settings provides 41 named Aura-2 English voices and a Preview voice button. Select a voice, preview it without saving, then Save preferences. Helena is the default for new configurations; saved preferences are retained. Voice catalogs for other providers are deferred.
+
 Speech & settings selects STT and TTS independently: Deepgram, OpenAI, ElevenLabs, or 9Router. Keys are stored in macOS Keychain (`com.agentflow.speech`); the browser receives configured/not-configured status only. Keys may also be supplied through explicitly configured server environment variables. No keys belong in this repository.
 
 Deepgram STT/TTS were tested live using the authorized local key. OpenAI, ElevenLabs, and 9Router pass mocked request/response tests; working live credentials/routes were not established. 9Router's inspected speech catalogs were empty. Agentflow does not start its Docker container automatically.
@@ -71,3 +73,5 @@ npm run test:live             # opt-in real speech and native Codex queue checks
 ```
 
 `npx playwright install chromium` installs the browser test runtime. Live checks use synthetic prompts and disposable sessions, not personal conversations. See [the plan](docs/PLAN.md), [architecture](docs/ARCHITECTURE.md), [TDD policy](docs/TESTING.md), and [backlog](docs/ISSUES.md).
+
+TypeScript migration is tracked in [AF-19](https://github.com/nolanmak/Agentflow/issues/19). Public-release preparation is documented in [PRIVACY.md](docs/PRIVACY.md); the repository remains private while historical metadata is cleaned.

@@ -208,5 +208,27 @@
     "body_file": "af-17.md",
     "url": "https://github.com/nolanmak/Agentflow/issues/17",
     "number": 17
+  },
+  {
+    "code": "AF-18",
+    "title": "AF-18: Deepgram voice picker and preview in dashboard settings",
+    "milestone": "M3: Conversation",
+    "dependencies": [
+      "AF-07",
+      "AF-09",
+      "AF-13"
+    ],
+    "body_file": "af-18.md",
+    "url": "https://github.com/nolanmak/Agentflow/issues/18",
+    "number": 18
+  },
+  {
+    "code": "AF-19",
+    "title": "AF-19: Migrate application, CLI, browser, and tests to strict TypeScript",
+    "milestone": "M0: Session proof",
+    "dependencies": [],
+    "body_file": "af-19.md",
+    "url": "https://github.com/nolanmak/Agentflow/issues/19",
+    "number": 19
   }
 ]

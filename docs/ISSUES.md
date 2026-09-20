@@ -1,6 +1,6 @@
 # Implementation backlog
 
-All 17 issues remain open pending complete acceptance evidence. The working implementation and live checks are described in [VALIDATION.md](VALIDATION.md). Each includes acceptance criteria, a test-first implementation sequence, dependencies, and completion evidence. Repository: [nolanmak/Agentflow](https://github.com/nolanmak/Agentflow) (private).
+Issues remain open until their acceptance evidence is complete. The working implementation and live checks are described in [VALIDATION.md](VALIDATION.md). Each includes acceptance criteria, a test-first implementation sequence, dependencies, and completion evidence. Repository: [nolanmak/Agentflow](https://github.com/nolanmak/Agentflow) (private).
 
 The local issue specifications mirror the initial GitHub issue bodies. GitHub is authoritative for status and discussion; update local specs when scope changes.
 
@@ -24,6 +24,9 @@ The local issue specifications mirror the initial GitHub issue bodies. GitHub is
 | AF-16 | [Validate full voice workflows, latency, and release readiness](https://github.com/nolanmak/Agentflow/issues/16) | M4: Daily-use release | AF-05, AF-06, AF-08, AF-09, AF-10, AF-11, AF-12, AF-13, AF-14, AF-15 |
 
 | AF-17 | [Simple terminal speech through Agentflow CLI and one agent tool](https://github.com/nolanmak/Agentflow/issues/17) | M3: Conversation | AF-14, AF-07 |
+
+| AF-18 | [Deepgram voice picker and preview](https://github.com/nolanmak/Agentflow/issues/18) | M3: Conversation | AF-07, AF-09, AF-13 |
+| AF-19 | [Migrate to strict TypeScript](https://github.com/nolanmak/Agentflow/issues/19) | M0: Session proof | None |
 
 ## Execution rules
 

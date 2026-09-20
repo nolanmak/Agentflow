@@ -2,8 +2,8 @@
 
 ## Passing evidence
 
-- Node unit/contract/integration suite: 31 tests passed. Covers four speech adapters, redacted provider failures, key isolation, Host/Origin/token protection, exact user text, operation deduplication including native ID migration, authenticated terminal WebSocket input/output, native view lifetime, voice chunks/VAD, MCP clock/tool schemas, and launchd plist paths.
-- Playwright: 3 browser tests passed with mocked agent/provider endpoints and a fake microphone. Session selection, historical timestamps, provider swaps, recording/submission/playback, and mobile overflow were checked. Desktop screenshot visually reviewed.
+- Node unit/contract/integration suite: 34 tests passed. Covers four speech adapters, redacted provider failures, key isolation, Host/Origin/token protection, exact user text, operation deduplication including native ID migration, authenticated terminal WebSocket input/output, native view lifetime, voice chunks/VAD, MCP clock/tool schemas, and launchd plist paths.
+- Playwright: 8 browser tests passed with mocked agent/provider endpoints and a fake microphone. Session selection, historical timestamps, provider swaps, recording/submission/playback, and mobile overflow were checked. Desktop screenshot visually reviewed.
 - Real Deepgram TTS → STT: 55,584 bytes of generated audio, successful transcription, macOS `afplay` exit 0. The authorized existing local key was imported into Agentflow Keychain without exposing it.
 - Real Codex SDK compatibility: three turns retained native session identity and remembered two synthetic nonce facts.
 - Real native Codex live queue: an externally controlled queue turn recalled a fact from the still-running original native terminal. No exit/resume or copied chat.
@@ -30,3 +30,7 @@ Initial failing suites preceded implementation for provider contracts, native no
 No personal transcripts, provider credentials, or recorded user audio are committed. Keep paid live checks opt-in and use disposable native sessions.
 
 CLI/MCP simplification: a browser-free subprocess test proves stdin and MCP send identical literal text to the same endpoint. An MCP failure test was run red, then fixed to return `isError: true` for execution failures. No skill or separate conversation model was added.
+
+## Deepgram voice picker (AF-18)
+
+Tests were run red before implementation: the preview configuration export was missing and all three initial picker tests failed because the control did not exist. The completed suite covers configured-key gating, exact voice-model persistence across reload, STT/session preservation, unsaved preview isolation, close/change cancellation, active-call exclusion, provider errors, and generic fields for other providers. Invalid preview IDs are rejected before key lookup/provider dispatch. A real Helena preview returned audio without changing saved settings. Strict TypeScript migration is separately scoped in AF-19.
