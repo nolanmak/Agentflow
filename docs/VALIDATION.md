@@ -16,16 +16,16 @@
 
 Initial failing suites preceded implementation for provider contracts, native normalization, HTTP security, voice segmentation/VAD, service config, and native terminal sharing. Later red regressions proved two real defects: operation retries conflicted after native ID resolution, and the API trimmed user text. Both were fixed and their tests pass. Live pipeline found and fixed a WebSocket upgrade-header bug; the authenticated WebSocket regression test now covers it. MCP clock/history schema test was run red before implementing the tools.
 
-## Remaining limits (issues stay open)
+## Remaining limits
 
-- Claude account reports “You've hit your weekly limit · resets 2am (America/New_York)”; no successful Claude model reply is claimed. Managed native input is implemented, external user-input attachment is not verified.
+- The project owner has validated normal Claude speech workflow use. The private peer-inbox experiment remains deliberately excluded because it wraps text as a peer message; arbitrary externally running Claude-process attachment is not represented as exact user-input parity.
 - OpenAI, ElevenLabs, and 9Router are contract-tested only; live credentials/routes were not established. Inspected 9Router speech catalogs were empty.
 - Browser tests use a fake microphone. Physical mic/speaker echo, automatic barge-in, audio-device absence, full reconnect recovery, and measured interruption budgets remain acceptance work.
 - UI histories show a bounded preview; this does not constrain native context. Native compaction is still the agent's own behavior. Tools expose time/history; tool availability does not guarantee the model invokes them on every time question.
 - Canceling an external queued Codex job stops Agentflow waiting/audio; it does not guarantee removal of an already accepted native queue turn.
 - External terminal raw-screen mirroring, prompt-draft/approval races, and all native concurrent-input cases are not certified.
 - Service restart kills service-owned native PTYs. Continuous log rotation and a real login acceptance run remain open.
-- CLI/MCP one-shot local speech works. AF-17 now tracks only the minimal CLI/MCP speech path with S01–S08 evidence. Custom terminal microphone capture and automatic speech modes are deferred.
+- CLI/MCP one-shot local speech works and AF-17 is closed. Custom terminal microphone capture and automatic speech modes are deferred.
 
 No personal transcripts, provider credentials, or recorded user audio are committed. Keep paid live checks opt-in and use disposable native sessions.
 
