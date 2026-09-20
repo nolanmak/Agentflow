@@ -49,6 +49,7 @@ interface Elements {
   ttsModel: HTMLInputElement;
   ttsVoiceField: HTMLElement;
   ttsVoice: HTMLInputElement;
+  ttsSpeed: HTMLSelectElement;
   routerUrl: HTMLInputElement;
   keyRows: HTMLElement;
   settingsNotice: HTMLElement;

@@ -2,6 +2,7 @@ import {
   record,
   isProvider,
   parseSettings,
+  playbackSpeed,
   parseJob,
   list,
 } from "../public/contracts.js";
@@ -29,7 +30,12 @@ export class Settings {
     this.file = join(dir, "settings.json");
     this.value = {
       stt: { provider: "deepgram", model: defaults.deepgram.stt },
-      tts: { provider: "deepgram", model: defaults.deepgram.tts, voice: "" },
+      tts: {
+        provider: "deepgram",
+        model: defaults.deepgram.tts,
+        voice: "",
+        speed: 1,
+      },
       routerUrl: "http://127.0.0.1:20128",
     };
   }
@@ -55,6 +61,14 @@ export class Settings {
           provider: c.provider,
           model: c.model.trim(),
           voice: typeof c.voice === "string" ? c.voice.slice(0, 200) : "",
+          ...(side === "tts"
+            ? {
+                speed:
+                  c.speed === undefined
+                    ? (next.tts.speed ?? 1)
+                    : playbackSpeed(c.speed),
+              }
+            : {}),
         };
       }
     if (input.routerUrl !== undefined) {

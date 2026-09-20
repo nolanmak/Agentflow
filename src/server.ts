@@ -6,6 +6,7 @@ import {
   isProvider,
   errorMessage,
   errorCode,
+  playbackSpeed,
   parseTerminalMessage,
   type KeyStorage,
 } from "../public/contracts.js";
@@ -78,6 +79,33 @@ function reply(res: http.ServerResponse, value: unknown, status = 200) {
     "Cache-Control": "no-store",
   });
   res.end(JSON.stringify(value));
+}
+export type LocalPlayer = (
+  executable: string,
+  args: string[],
+  options: { signal?: AbortSignal; timeout: number },
+) => Promise<unknown>;
+export async function playLocalAudio(
+  audio: Buffer,
+  speed: number,
+  player: LocalPlayer = exec,
+  signal?: AbortSignal,
+) {
+  const d = await mkdtemp(join(tmpdir(), "agentflow-play-"));
+  try {
+    const p = join(d, "speech.mp3");
+    await writeFile(p, audio, { mode: 0o600 });
+    await player(
+      "/usr/bin/afplay",
+      ["--rate", String(speed), "--rQuality", "1", p],
+      {
+        signal,
+        timeout: 120000,
+      },
+    );
+  } finally {
+    await rm(d, { recursive: true, force: true });
+  }
 }
 export async function createApp({
   port = Number(process.env.AGENTFLOW_PORT || 4317),
@@ -294,6 +322,12 @@ export async function createApp({
         ) {
           const b = await json(req),
             c = previewConfig(await settings.speech("tts"), b.model);
+          const speed =
+            url.pathname === "/api/speak"
+              ? b.speed === undefined
+                ? (c.speed ?? 1)
+                : playbackSpeed(b.speed)
+              : undefined;
           const ac = new AbortController();
           res.on("close", () => ac.abort());
           const r = await synthesize(
@@ -303,18 +337,8 @@ export async function createApp({
             ac.signal,
           );
           if (url.pathname === "/api/speak") {
-            const d = await mkdtemp(join(tmpdir(), "agentflow-play-"));
-            try {
-              const p = join(d, "speech.mp3");
-              await writeFile(p, r.audio, { mode: 0o600 });
-              await exec("/usr/bin/afplay", [p], {
-                signal: ac.signal,
-                timeout: 120000,
-              });
-              return reply(res, { ok: true, bytes: r.audio.length });
-            } finally {
-              await rm(d, { recursive: true, force: true });
-            }
+            await playLocalAudio(r.audio, speed!, exec, ac.signal);
+            return reply(res, { ok: true, bytes: r.audio.length });
           }
           res.writeHead(200, {
             "Content-Type": r.mime,

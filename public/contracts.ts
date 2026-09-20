@@ -6,6 +6,7 @@ export interface SpeechConfig {
   model: string;
   voice?: string;
   baseUrl?: string;
+  speed?: number;
 }
 export interface SettingsValue {
   stt: SpeechConfig;
@@ -114,6 +115,20 @@ export function string(value: unknown, label = "value"): string {
   if (typeof value !== "string") throw Error("Expected text for " + label);
   return value;
 }
+export const playbackSpeeds = [0.75, 1, 1.25, 1.5, 1.75, 2] as const;
+export function playbackSpeed(value: unknown): number {
+  if (value === undefined) return 1;
+  if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    !playbackSpeeds.includes(value as (typeof playbackSpeeds)[number])
+  )
+    throw Object.assign(Error("Invalid playback speed"), {
+      code: "invalid_speed",
+      status: 400,
+    });
+  return value;
+}
 export function parseSettings(value: unknown): SettingsValue {
   const r = record(value);
   function side(value: unknown): SpeechConfig {
@@ -125,7 +140,11 @@ export function parseSettings(value: unknown): SettingsValue {
       ...(typeof c.voice === "string" ? { voice: c.voice } : {}),
     };
   }
-  return { stt: side(r.stt), tts: side(r.tts), routerUrl: string(r.routerUrl) };
+  return {
+    stt: side(r.stt),
+    tts: { ...side(r.tts), speed: playbackSpeed(record(r.tts).speed) },
+    routerUrl: string(r.routerUrl),
+  };
 }
 export function parseTurn(value: unknown): TurnInput {
   const r = record(value);

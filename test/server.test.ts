@@ -197,3 +197,33 @@ test("invalid voice preview is rejected before fetching a key or calling a provi
     await app.close();
   }
 });
+test("invalid local playback speed is rejected before fetching a key or calling a provider", async () => {
+  let keyReads = 0;
+  const app = await createApp({
+    port: 0,
+    dir: await mkdtemp(join(tmpdir(), "af-speed-")),
+    store: {
+      get: async () => {
+        keyReads++;
+        return "FAKE";
+      },
+    },
+    agents: { init: async () => {}, close() {} },
+  });
+  try {
+    const { token } = await (await fetch(app.url + "/api/bootstrap")).json();
+    const r = await fetch(app.url + "/api/speak", {
+      method: "POST",
+      headers: {
+        "x-agentflow-token": token,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ text: "Hello", speed: 2.1 }),
+    });
+    assert.equal(r.status, 400);
+    assert.match((await r.json()).error, /speed/i);
+    assert.equal(keyReads, 0);
+  } finally {
+    await app.close();
+  }
+});

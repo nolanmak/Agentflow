@@ -207,6 +207,47 @@ test("Deepgram picker saves the selected voice and preserves listening/session a
     "aura-2-helena-en",
   );
 });
+test("voice speed saves at 2× and applies to preview playback", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const playbackRates: number[] = [];
+    Object.defineProperty(window, "agentflowPlaybackRates", {
+      value: playbackRates,
+    });
+    HTMLMediaElement.prototype.play = function () {
+      playbackRates.push(this.playbackRate);
+      queueMicrotask(() => this.dispatchEvent(new Event("ended")));
+      return Promise.resolve();
+    };
+  });
+  await mock(page);
+  await page.goto("/");
+  await page.locator("#settingsButton").click();
+  await page.getByLabel("Voice speed", { exact: true }).selectOption("2");
+  await page.getByRole("button", { name: "Save preferences" }).click();
+  await page.getByRole("button", { name: /Native sync test/ }).click();
+  await page.locator("#message").fill("Read this at two times speed.");
+  await page.getByRole("button", { name: "Send message" }).click();
+  await expect(page.locator("#state")).toHaveText("Your turn");
+  await page.locator("#settingsButton").click();
+  await expect(page.getByLabel("Voice speed", { exact: true })).toHaveValue(
+    "2",
+  );
+  await page
+    .getByRole("button", { name: "Preview voice", exact: true })
+    .click();
+  await expect(page.locator("#settingsNotice")).toContainText(
+    "Preview finished",
+  );
+  expect(
+    await page.evaluate(
+      () =>
+        (window as unknown as { agentflowPlaybackRates: number[] })
+          .agentflowPlaybackRates,
+    ),
+  ).toEqual([2, 2]);
+});
 test("Deepgram key gates voice picker and preview; other providers keep manual voice fields", async ({
   page,
 }) => {

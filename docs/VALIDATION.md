@@ -35,7 +35,6 @@ CLI/MCP simplification: a browser-free subprocess test proves stdin and MCP send
 
 Tests were run red before implementation: the preview configuration export was missing and all three initial picker tests failed because the control did not exist. The completed suite covers configured-key gating, exact voice-model persistence across reload, STT/session preservation, unsaved preview isolation, close/change cancellation, active-call exclusion, provider errors, and generic fields for other providers. Invalid preview IDs are rejected before key lookup/provider dispatch. A real Helena preview returned audio without changing saved settings. Strict TypeScript migration is covered below.
 
-
 ## Strict TypeScript migration (AF-19)
 
 - All handwritten application, browser, executable scripts, test modules, and Playwright config are `.ts`. No handwritten JavaScript remains. Strict `tsc --noEmit` passes; negative fixtures reject invalid agent/event/status/terminal input types.
@@ -50,3 +49,11 @@ Tests were run red before implementation: the preview configuration export was m
 Claude live response limitations and physical microphone acceptance remain as listed above; this migration does not claim to resolve those separate release gaps.
 
 Production-only dependency verification also passed after `npm prune --omit=dev`: compiled CLI ran and the server served HTML, application modules, and xterm assets with the TypeScript package absent.
+
+## Configurable playback speed (AF-20)
+
+- Speech settings offer 0.75×, 1×, 1.25×, 1.5×, 1.75×, and 2×. Existing settings without a saved value load at 1×.
+- Browser reply playback and unsaved voice preview apply the selected rate before playback. The deterministic browser test captures both assignments at 2×.
+- CLI accepts `agentflow speak --speed 2`, and the MCP `speak` tool accepts an optional `speed` argument for that response only. The saved setting remains unchanged by an override.
+- macOS local playback receives `afplay --rate`; provider synthesis requests deliberately receive no speed parameter. Invalid speeds are rejected before a provider key is read or a provider request is sent.
+- Local verification: direct CLI and MCP 2× Deepgram playback completed successfully through macOS audio. The deterministic suite passed 41 tests and the browser suite passed 9 tests.

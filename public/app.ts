@@ -279,6 +279,7 @@ function queueSpeech(text: string, g: number) {
         await new Promise<void>((resolve, reject) => {
           const a = new Audio(url);
           audio = a;
+          a.playbackRate = settings.tts.speed ?? 1;
           a.onended = () => resolve();
           a.onerror = () => reject(Error("Audio playback failed"));
           a.onpause = () => resolve();
@@ -632,6 +633,7 @@ $("previewVoice").onclick = async () => {
     url = URL.createObjectURL(blob);
     const player = new Audio(url);
     previewAudio = player;
+    player.playbackRate = Number($("ttsSpeed").value);
     $("settingsNotice").textContent = "Playing " + v.name + "…";
     await new Promise<void>((resolve, reject) => {
       player.onended = () => resolve();
@@ -674,6 +676,7 @@ function paintSettings() {
     $(`${side}Model`).value = settings[side].model;
   }
   $("ttsVoice").value = settings.tts.voice || "";
+  $("ttsSpeed").value = String(settings.tts.speed ?? 1);
   $("routerUrl").value = settings.routerUrl;
   $("sttLabel").textContent = names[settings.stt.provider] + " listens";
   $("ttsLabel").textContent =
@@ -831,6 +834,7 @@ $("settingsForm").onsubmit = async (e) => {
           provider: $("ttsProvider").value,
           model: $("ttsModel").value,
           voice: $("ttsVoice").value,
+          speed: Number($("ttsSpeed").value),
         },
         routerUrl: $("routerUrl").value,
       },

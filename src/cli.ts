@@ -4,6 +4,7 @@ import {
   record,
   string,
   errorMessage,
+  playbackSpeed,
   type TerminalClientMessage,
 } from "../public/contracts.js";
 import { object } from "./native-protocol.js";
@@ -54,6 +55,18 @@ async function textInput(args: string[]) {
     return text;
   }
   return args.join(" ");
+}
+function speakOptions(args: string[]) {
+  const speedAt = args.indexOf("--speed");
+  if (speedAt < 0) return { textArgs: args, speed: undefined };
+  if (speedAt === args.length - 1)
+    throw Error("Use --speed with a value from 0.75 to 2");
+  return {
+    textArgs: args.filter(
+      (_, index) => index !== speedAt && index !== speedAt + 1,
+    ),
+    speed: playbackSpeed(Number(args[speedAt + 1])),
+  };
 }
 async function terminal(args: string[]) {
   const agent = args[0];
@@ -159,11 +172,17 @@ async function mcp() {
             {
               name: "speak",
               description:
-                "Read text aloud on the user’s Mac when they request a spoken response. No dashboard is needed. Pass the answer text directly; this tool does not change or resume the agent session.",
+                "Read text aloud on the user’s Mac when they request a spoken response. Optionally set speed for this one response; use 2 for twice normal playback. No dashboard is needed. This tool does not change or resume the agent session.",
               inputSchema: {
                 type: "object",
                 properties: {
                   text: { type: "string", minLength: 1, maxLength: 12000 },
+                  speed: {
+                    type: "number",
+                    enum: [0.75, 1, 1.25, 1.5, 1.75, 2],
+                    description:
+                      "Optional playback speed for this response only. 1 is normal and 2 is twice normal.",
+                  },
                 },
                 required: ["text"],
                 additionalProperties: false,
@@ -198,7 +217,12 @@ async function mcp() {
           ],
         };
       else if (m.method === "tools/call" && params.name === "speak") {
-        const r = await request("/speak", { text: args.text });
+        const r = await request("/speak", {
+          text: args.text,
+          ...(args.speed === undefined
+            ? {}
+            : { speed: playbackSpeed(args.speed) }),
+        });
         result = {
           content: [
             {
@@ -292,8 +316,12 @@ async function main() {
     return;
   }
   if (command === "speak") {
-    const text = await textInput(args);
-    await request("/speak", { text });
+    const { textArgs, speed } = speakOptions(args);
+    const text = await textInput(textArgs);
+    await request("/speak", {
+      text,
+      ...(speed === undefined ? {} : { speed }),
+    });
     console.log("Spoken.");
     return;
   }
@@ -306,7 +334,7 @@ async function main() {
     return;
   }
   console.log(
-    'Agentflow\n  start | open | status\n  run codex|claude [--resume ID]\n  speak --text "Hello" (or pipe text through stdin)\n  service install|status|restart|stop|uninstall\n  mcp',
+    'Agentflow\n  start | open | status\n  run codex|claude [--resume ID]\n  speak [--speed 0.75–2] --text "Hello" (or pipe text through stdin)\n  service install|status|restart|stop|uninstall\n  mcp',
   );
 }
 main().catch((e) => {

@@ -24,6 +24,7 @@ agentflow run codex             # native terminal shared with the dashboard
 agentflow run claude
 agentflow run codex --resume NATIVE_SESSION_UUID
 agentflow speak --text "The tests passed."
+agentflow speak --speed 2 --text "Say this twice as fast."
 printf 'The tests passed.\n' | agentflow speak
 agentflow service status
 agentflow service restart
@@ -44,7 +45,7 @@ The transcript preview shows the last 40 readable native messages with original 
 
 ## Speech providers
 
-With a Deepgram key configured, Speech & settings provides 41 named Aura-2 English voices and a Preview voice button. Select a voice, preview it without saving, then Save preferences. Helena is the default for new configurations; saved preferences are retained. Voice catalogs for other providers are deferred.
+With a Deepgram key configured, Speech & settings provides 41 named Aura-2 English voices, a Preview voice button, and playback-speed choices from 0.75× through 2×. Select a voice and speed, preview them without saving, then Save preferences. Helena is the default for new configurations; saved preferences are retained. Voice catalogs for other providers are deferred.
 
 Speech & settings selects STT and TTS independently: Deepgram, OpenAI, ElevenLabs, or 9Router. Keys are stored in macOS Keychain (`com.agentflow.speech`); the browser receives configured/not-configured status only. Keys may also be supplied through explicitly configured server environment variables. No keys belong in this repository.
 
@@ -63,7 +64,7 @@ claude mcp add --scope user agentflow -- /absolute/path/to/node /absolute/path/t
 
 [Official Codex MCP configuration](https://developers.openai.com/codex/mcp). Refresh tools using the native client's supported flow when adding tools to an already-running session; Agentflow never closes it automatically.
 
-Ask: **“Use Agentflow to read your answer aloud.”** The `speak` tool plays through the Mac's audio device even with the dashboard closed. No skill is required. Keep using your existing dictation for input. If the running agent has not loaded the MCP tool yet, ask it to run `agentflow speak` using its shell tool. [Issue #17](https://github.com/nolanmak/Agentflow/issues/17) now scopes this minimal CLI/tool path with objective tests; custom terminal microphone capture and automatic speech modes are deferred.
+Ask: **“Use Agentflow to read your answer aloud at 2× speed.”** The `speak` tool plays through the Mac's audio device even with the dashboard closed. Its optional `speed` argument applies to that response only; use `2` for twice normal playback. No skill is required. Keep using your existing dictation for input. If the running agent has not loaded the MCP tool yet, ask it to run `agentflow speak --speed 2` using its shell tool. [Issue #17](https://github.com/nolanmak/Agentflow/issues/17) scopes this minimal CLI/tool path with objective tests; custom terminal microphone capture and automatic speech modes are deferred.
 
 ## Verification
 

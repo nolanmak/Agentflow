@@ -30,7 +30,7 @@ One Agentflow job per native session is enforced. The native CLI controls typed/
 
 Microphone capture is opt-in. Hands-free uses RMS/silence turn detection followed by recorded-utterance STT, native agent response, sentence-ordered TTS, then another listening cycle. This is half-duplex with explicit interruption. Automatic speaker barge-in is not implemented. STT and TTS providers are independently swappable between calls.
 
-The native answer text is sent to TTS without a separate rewriting model. Browser speech is played by the browser; CLI/MCP speech uses `afplay` on the Mac. A connected browser is not required for `speak`.
+The native answer text is sent to TTS without a separate rewriting model. Browser speech uses the saved playback speed; CLI/MCP speech passes the saved or one-response override speed to `afplay` on the Mac. A connected browser is not required for `speak`.
 
 ## Local security and lifecycle
 

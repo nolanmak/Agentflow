@@ -30,6 +30,13 @@ test("MCP exposes speech plus accurate clock and timestamped native history tool
     results[0].result.tools.map((x: { name: string }) => x.name),
     ["speak", "current_time", "session_history"],
   );
+  const speak = results[0].result.tools.find(
+    (tool: { name: string }) => tool.name === "speak",
+  );
+  assert.deepEqual(
+    speak.inputSchema.properties.speed.enum,
+    [0.75, 1, 1.25, 1.5, 1.75, 2],
+  );
   const now = JSON.parse(results[1].result.content[0].text);
   assert.ok(Math.abs(Date.now() - Date.parse(now.utc)) < 5000);
   assert.ok(now.timezone);
@@ -46,6 +53,7 @@ test("CLI stdin and MCP speech use the same browser-free endpoint with literal t
     path: string | undefined;
     token: string | string[] | undefined;
     text: string;
+    speed?: number;
   }[] = [];
   const server = http.createServer(async (req, res) => {
     let body = "";
@@ -54,6 +62,7 @@ test("CLI stdin and MCP speech use the same browser-free endpoint with literal t
       path: req.url,
       token: req.headers["x-agentflow-token"],
       text: JSON.parse(body).text,
+      speed: JSON.parse(body).speed,
     });
     res.setHeader("Content-Type", "application/json");
     res.end(JSON.stringify({ ok: true }));
@@ -76,21 +85,21 @@ test("CLI stdin and MCP speech use the same browser-free endpoint with literal t
   }
   try {
     const text = "Literal $HOME, `code`, $(command), and Unicode: café.\n";
-    assert.equal((await run(["speak"], text)).code, 0);
+    assert.equal((await run(["speak", "--speed", "2"], text)).code, 0);
     const reply = await run(
       ["mcp"],
       JSON.stringify({
         jsonrpc: "2.0",
         id: 1,
         method: "tools/call",
-        params: { name: "speak", arguments: { text } },
+        params: { name: "speak", arguments: { text, speed: 1.5 } },
       }) + "\n",
     );
     assert.equal(reply.code, 0);
     assert.match(JSON.parse(reply.out).result.content[0].text, /played/);
     assert.deepEqual(requests, [
-      { path: "/api/speak", token: "fixture-token", text },
-      { path: "/api/speak", token: "fixture-token", text },
+      { path: "/api/speak", token: "fixture-token", text, speed: 2 },
+      { path: "/api/speak", token: "fixture-token", text, speed: 1.5 },
     ]);
   } finally {
     await new Promise((r) => server.close(r));
@@ -115,4 +124,23 @@ test("MCP speech execution failures are tool errors, never false playback succes
   const response = JSON.parse(out);
   assert.equal(response.result?.isError, true);
   assert.match(response.result.content[0].text, /Start Agentflow/);
+});
+test("MCP rejects an unsupported per-response speech speed before calling the service", async () => {
+  const p = spawn(process.execPath, ["dist/src/cli.js", "mcp"], {
+    env: { ...process.env, AGENTFLOW_HOME: "/nonexistent-agentflow-test-home" },
+  });
+  let out = "";
+  p.stdout.on("data", (x) => (out += x));
+  p.stdin.end(
+    JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: { name: "speak", arguments: { text: "hello", speed: 2.1 } },
+    }) + "\n",
+  );
+  await new Promise((r) => p.on("close", r));
+  const response = JSON.parse(out);
+  assert.equal(response.result?.isError, true);
+  assert.match(response.result.content[0].text, /speed/i);
 });
