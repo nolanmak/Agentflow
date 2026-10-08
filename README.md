@@ -1,14 +1,31 @@
 # Agentflow
 
+[![Checks](https://github.com/nolanmak/Agentflow/actions/workflows/ci.yml/badge.svg)](https://github.com/nolanmak/Agentflow/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+**A voice interface for your coding agents. Built at Ship Systems, shared as open source.**
+
 Speak to native Codex and Claude Code sessions on your Mac. The local service provides speech input/output, a session dashboard, and terminal/MCP speech tools.
 
 [Dashboard](http://127.0.0.1:4317) · [Repository](https://github.com/nolanmak/Agentflow) · [Issues](https://github.com/nolanmak/Agentflow/issues) · [Validation and limitations](docs/VALIDATION.md)
 
+## Status
+
+An open-source developer preview for macOS, installed from source. Deepgram speech
+and native Codex continuity have live validation; other provider and session limits
+are described below. See [validation and known limitations](docs/VALIDATION.md)
+before relying on an unverified workflow. No packaged release is available yet.
+
 ## Run
 
-Requires macOS, Node 22.18 or newer, and installed/authenticated native `codex` and `claude` CLIs. Tested locally with Node 26.5.1.
+Requires macOS, Git, Node 22.18 or newer, and an installed/authenticated native
+`codex` or `claude` CLI for the agent you want to use. Tested locally with Node 26.5.1.
+Bring your own speech-provider API key; speech usage and the native agent's account
+requirements are separate. Provider charges apply.
 
 ```sh
+git clone https://github.com/nolanmak/Agentflow.git
+cd Agentflow
 npm ci
 npm run build
 mkdir -p "$HOME/.local/bin"
@@ -18,6 +35,12 @@ node dist/src/cli.js open
 ```
 
 Add `~/.local/bin` to your shell PATH to use `agentflow`. The install command enables login startup. The microphone remains off until explicitly started.
+
+In the dashboard, open **Speech & settings**, add your provider key, select speech
+input/output providers, and save your preferences. Deepgram is the currently
+live-tested speech option. Start a managed session with one of the commands below;
+approve native agent trust and permission prompts in its terminal. Keep this
+checkout in place: the CLI symlink and login service reference its built files.
 
 ```sh
 agentflow run codex             # native terminal shared with the dashboard
@@ -81,3 +104,14 @@ npm run test:live             # opt-in real speech and native Codex queue checks
 Handwritten application, browser, scripts, and tests are strict TypeScript. `npm run build` emits JavaScript and source maps under ignored `dist/`; Node runs those compiled files without TypeScript tooling. `npm run dev` builds and starts the service. CI uses Node 26.5.1 and runs typecheck, compiled unit/integration tests, and Playwright.
 
 For existing installations, see [the compiled-entrypoint migration](docs/TYPESCRIPT.md). Agentflow is released under the [MIT License](LICENSE). The public-release privacy review and the owner-accepted historical identity metadata are documented in [PRIVACY.md](docs/PRIVACY.md).
+
+## Contributing and support
+
+Bug reports, documentation improvements, and pull requests are welcome. Start with
+[CONTRIBUTING.md](CONTRIBUTING.md) and the [issue tracker](https://github.com/nolanmak/Agentflow/issues).
+Use synthetic sessions in reproductions and remove private data from logs and
+screenshots. For sensitive reports, follow [SECURITY.md](SECURITY.md).
+
+## License
+
+Agentflow is licensed under the [MIT License](LICENSE).

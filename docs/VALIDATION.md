@@ -43,7 +43,7 @@ Tests were run red before implementation: the preview configuration export was m
 - Final compiled live pipeline passed: exact Deepgram transcription reached the same native Codex PID, the synthetic remembered word was returned, both WebSocket views updated, timestamps were present, and 6,048 bytes of Helena audio played via `afplay`. No personal session was used.
 - Installed CLI symlink, launchd definition, Codex MCP entry, and Claude MCP entry now point to `dist/src/`. Before service replacement, authenticated inspection reported zero active jobs and zero live managed terminals. Unrelated native sessions were not restarted. Deepgram remained configured and the saved Helena voice remained selected.
 - Production HTTP checks returned 200 for HTML, compiled app, shared contracts, DOM helper, and xterm assets. No TypeScript loader is required by the compiled runtime.
-- GitHub CI is configured for Node 26.5.1, clean install, typecheck, compiled tests/build, and Chromium browser tests. [The first hosted run](https://github.com/nolanmak/Agentflow/actions/runs/35479267243) was blocked before any steps started: GitHub reported failed account payments or an insufficient spending limit. Hosted CI is not counted as passing; AF-19 remains open for that criterion.
+- GitHub CI is configured for Node 26.5.1, clean install, typecheck, compiled tests/build, and Chromium browser tests. [The first hosted run](https://github.com/nolanmak/Agentflow/actions/runs/35479267243) was blocked before any steps started: GitHub reported failed account payments or an insufficient spending limit. That initial run was not counted as passing. Subsequent hosted CI passed, including [the playback-speed commit](https://github.com/nolanmak/Agentflow/actions/runs/35489206198), confirmed during the 2026-10-08 repository review. The earlier billing failure is historical.
 - Gitleaks scanned published history and the clean current source export with zero findings. This does not erase owner-accepted historical author identity or establish that every possible form of PII is detectable. No history rewrite was performed.
 
 Claude live response limitations and physical microphone acceptance remain as listed above; this migration does not claim to resolve those separate release gaps.
@@ -57,3 +57,21 @@ Production-only dependency verification also passed after `npm prune --omit=dev`
 - CLI accepts `agentflow speak --speed 2`, and the MCP `speak` tool accepts an optional `speed` argument for that response only. The saved setting remains unchanged by an override.
 - macOS local playback receives `afplay --rate`; provider synthesis requests deliberately receive no speed parameter. Invalid speeds are rejected before a provider key is read or a provider request is sent.
 - Local verification: direct CLI and MCP 2× Deepgram playback completed successfully through macOS audio. The deterministic suite passed 41 tests and the browser suite passed 9 tests.
+
+## Open-source readiness review — 2026-10-08
+
+- Both the MIT license file and npm package license metadata are present.
+- README onboarding now includes cloning, provider setup, source-preview status,
+  and links to contribution and security reporting guides.
+- Gitleaks scanned all 10 previously published commits with no findings.
+- Dependency audit identified GHSA-6qxp-vccf-f47h in the transitive MCP SDK. The
+  lockfile now resolves SDK 1.32.1; `npm audit` reports zero known vulnerabilities.
+  Advisory: https://github.com/advisories/GHSA-6qxp-vccf-f47h
+- After the dependency update, a fresh `npm ci`, typecheck, build, all 41 Node
+  tests, and all nine browser tests passed. `npm audit` reported zero vulnerabilities.
+- Current-source and published issue/comment secret scans found no credentials.
+  Private vulnerability reporting is enabled.
+
+This review does not replace the physical-device and provider acceptance checks
+listed above. No application service, personal native session, or API key was
+used for the deterministic checks.

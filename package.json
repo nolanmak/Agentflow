@@ -37,5 +37,14 @@
   },
   "allowScripts": {
     "node-pty@1.1.0": true
+  },
+  "license": "MIT",
+  "description": "Local voice conversations with native Claude Code and Codex sessions on macOS.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nolanmak/Agentflow.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nolanmak/Agentflow/issues"
   }
 }
