@@ -94,7 +94,11 @@ export async function playLocalAudio(
 ) {
   const d = await mkdtemp(join(tmpdir(), "agentflow-play-"));
   try {
-    const p = join(d, "speech.mp3");
+    const isWav =
+      audio.length >= 12 &&
+      audio.toString("ascii", 0, 4) === "RIFF" &&
+      audio.toString("ascii", 8, 12) === "WAVE";
+    const p = join(d, isWav ? "speech.wav" : "speech.mp3");
     await writeFile(p, audio, { mode: 0o600 });
     await player(
       "/usr/bin/afplay",
