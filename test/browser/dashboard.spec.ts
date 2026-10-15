@@ -458,3 +458,92 @@ test("starting another recording invalidates the previous pending transcript", a
   expect(getTurn()).toBeUndefined();
   await page.locator("#end").click();
 });
+test("out-of-order microphone permission results release every acquired track", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const original = navigator.mediaDevices.getUserMedia.bind(
+      navigator.mediaDevices,
+    );
+    const microphoneRequests: { stream: MediaStream; release: () => void }[] =
+      [];
+    Object.assign(window, { microphoneRequests });
+    navigator.mediaDevices.getUserMedia = async (constraints) => {
+      const stream = await original(constraints);
+      await new Promise<void>((release) =>
+        microphoneRequests.push({ stream, release }),
+      );
+      return stream;
+    };
+  });
+  await mock(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: /Native sync test/ }).click();
+  await page.locator("#handsfree").uncheck();
+  await page.locator("#talk").click();
+  const count = () =>
+    page.evaluate(
+      () =>
+        (window as unknown as { microphoneRequests: unknown[] })
+          .microphoneRequests.length,
+    );
+  await expect.poll(count).toBe(1);
+  await page.locator("#talk").click();
+  await expect.poll(count).toBe(2);
+  await page.evaluate(() =>
+    (
+      window as unknown as { microphoneRequests: { release: () => void }[] }
+    ).microphoneRequests[1]!.release(),
+  );
+  await expect(page.locator("#state")).toHaveText("Listening");
+  await page.evaluate(() =>
+    (
+      window as unknown as { microphoneRequests: { release: () => void }[] }
+    ).microphoneRequests[0]!.release(),
+  );
+  await page.locator("#end").click();
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        (
+          window as unknown as { microphoneRequests: { stream: MediaStream }[] }
+        ).microphoneRequests.flatMap((r) =>
+          r.stream.getTracks().map((t) => t.readyState),
+        ),
+      ),
+    )
+    .toEqual(["ended", "ended"]);
+});
+test("stale microphone permission rejection cannot stop the current recording", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const original = navigator.mediaDevices.getUserMedia.bind(
+      navigator.mediaDevices,
+    );
+    let requests = 0;
+    navigator.mediaDevices.getUserMedia = async (constraints) => {
+      if (++requests === 1)
+        return new Promise<MediaStream>((_, reject) =>
+          Object.assign(window, {
+            rejectOldMicrophone: () => reject(Error("Old permission denied")),
+          }),
+        );
+      return original(constraints);
+    };
+  });
+  await mock(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: /Native sync test/ }).click();
+  await page.locator("#handsfree").uncheck();
+  await page.locator("#talk").click();
+  await page.locator("#talk").click();
+  await expect(page.locator("#state")).toHaveText("Listening");
+  await page.evaluate(() =>
+    (
+      window as unknown as { rejectOldMicrophone: () => void }
+    ).rejectOldMicrophone(),
+  );
+  await expect(page.locator("#state")).toHaveText("Listening");
+  await page.locator("#end").click();
+});

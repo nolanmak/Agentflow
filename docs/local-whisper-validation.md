@@ -19,7 +19,10 @@ The Python runtime's own red/green evidence and pinning details are in [runtime 
 - Independent review reproduced a stale native submission when starting another recording during inference; each new recording now aborts its predecessor and increments the generation. Browser regression passed.
 - Browser capture stops at 89 seconds to leave a flush margin beneath the converter's strict 90-second decoded limit.
 
-Final local checks: 52 Node tests, 12 Playwright browser tests and 8 Python lifecycle tests passed; typecheck and build passed. The manually exercised microphone and audible playback gates remain outstanding.
+- Follow-up review reproduced HTTP 700 crashing the process (Response RangeError); response construction now destroys the stream and rejects safely on malformed metadata.
+- Out-of-order microphone permission success reproduced a live track leak after End; acquired streams remain local until generation validation. A stale permission rejection also stopped/submitted the current recording; the outer error path now ignores superseded generations. Both browser tests were observed red before the fixes and green afterward.
+
+Final local checks: 53 Node tests, 14 Playwright browser tests and 8 Python lifecycle tests passed; typecheck and build passed. The manually exercised microphone and audible playback gates remain outstanding.
 
 ## Reproduce
 

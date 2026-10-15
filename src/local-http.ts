@@ -17,22 +17,27 @@ export const localFetch: Fetcher = async (url, options) => {
         signal: options.signal ?? undefined,
       },
       (res) => {
-        const headers = new Headers();
-        for (const [key, value] of Object.entries(res.headers))
-          if (value !== undefined)
-            headers.set(key, Array.isArray(value) ? value.join(", ") : value);
-        if ([204, 205, 304].includes(res.statusCode || 0)) res.resume();
-        resolve(
-          new Response(
-            [204, 205, 304].includes(res.statusCode || 0)
-              ? null
-              : (Readable.toWeb(res) as ReadableStream<Uint8Array>),
-            {
-              status: res.statusCode || 502,
-              headers,
-            },
-          ),
-        );
+        try {
+          const headers = new Headers();
+          for (const [key, value] of Object.entries(res.headers))
+            if (value !== undefined)
+              headers.set(key, Array.isArray(value) ? value.join(", ") : value);
+          if ([204, 205, 304].includes(res.statusCode || 0)) res.resume();
+          resolve(
+            new Response(
+              [204, 205, 304].includes(res.statusCode || 0)
+                ? null
+                : (Readable.toWeb(res) as ReadableStream<Uint8Array>),
+              {
+                status: res.statusCode || 502,
+                headers,
+              },
+            ),
+          );
+        } catch (error) {
+          res.destroy();
+          reject(error);
+        }
       },
     );
     req.on("error", reject);

@@ -472,7 +472,7 @@ async function listen() {
   const recordingAborter = aborter;
   notice("");
   try {
-    stream = await navigator.mediaDevices.getUserMedia({
+    const acquiredStream = await navigator.mediaDevices.getUserMedia({
       audio: {
         echoCancellation: true,
         noiseSuppression: true,
@@ -480,9 +480,10 @@ async function listen() {
       },
     });
     if (g !== generation) {
-      stream.getTracks().forEach((t) => t.stop());
+      acquiredStream.getTracks().forEach((t) => t.stop());
       return;
     }
+    stream = acquiredStream;
     const chunks: Blob[] = [];
     const mime = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"].find(
       (x) => MediaRecorder.isTypeSupported(x),
@@ -556,6 +557,7 @@ async function listen() {
     }
     tick();
   } catch (e) {
+    if (g !== generation) return;
     call = false;
     releaseMic();
     report(

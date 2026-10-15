@@ -269,3 +269,24 @@ test("empty HTTP statuses become recoverable transcript errors instead of crashi
     await new Promise<void>((r) => server.close(() => r()));
   }
 });
+test("invalid HTTP status rejects in the caller instead of crashing the process", async () => {
+  const { execFile } = await import("node:child_process");
+  const { promisify } = await import("node:util");
+  const { stdout } = await promisify(execFile)(
+    process.execPath,
+    [
+      "--input-type=module",
+      "-e",
+      `
+ import {createServer} from 'node:http';import {localFetch} from './dist/src/local-http.js';
+ const server=createServer(async(req,res)=>{for await(const chunk of req){}res.writeHead(700);res.end('bad');});
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));
+ try { await localFetch('http://127.0.0.1:'+server.address().port,{method:'POST',body:'audio'});throw Error('must reject'); }
+ catch(e) { if(e.message==='must reject') throw e; console.log('recovered'); }
+ finally {server.closeAllConnections();await new Promise(r=>server.close(r));}
+ `,
+    ],
+    { timeout: 5000 },
+  );
+  assert.match(stdout, /recovered/);
+});
