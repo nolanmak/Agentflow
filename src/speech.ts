@@ -1,6 +1,10 @@
 import { localFetch } from "./local-http.js";
 import { normalizeLocalAudio } from "./local-audio.js";
-import { record, localWhisperUrl } from "../public/contracts.js";
+import {
+  record,
+  localWhisperUrl,
+  localKokoroUrl,
+} from "../public/contracts.js";
 import type { SpeechConfig, Provider } from "../public/contracts.js";
 export type Fetcher = (url: string, options: RequestInit) => Promise<Response>;
 import { deepgramVoice } from "../public/deepgram-voices.js";
@@ -10,6 +14,7 @@ export const providers: Provider[] = [
   "elevenlabs",
   "9router",
   "local-whisper",
+  "local-kokoro",
 ];
 export const defaults = {
   deepgram: { stt: "nova-3", tts: "aura-2-helena-en", voice: "" },
@@ -19,6 +24,7 @@ export const defaults = {
     voice: "coral",
   },
   elevenlabs: { stt: "scribe_v2", tts: "eleven_flash_v2_5", voice: "" },
+  "local-kokoro": { stt: "", tts: "kokoro", voice: "af_heart" },
   "local-whisper": { stt: "base.en", tts: "", voice: "" },
   "9router": { stt: "", tts: "", voice: "" },
 };
@@ -31,6 +37,14 @@ function config(c: SpeechConfig, key: string) {
       base: localWhisperUrl(c.baseUrl),
       headers: {} as Record<string, string>,
     };
+  if (c.provider === "local-kokoro") {
+    if (c.model !== "kokoro")
+      throw failure("invalid_model", "Local Kokoro requires the kokoro model");
+    return {
+      base: localKokoroUrl(c.baseUrl),
+      headers: {} as Record<string, string>,
+    };
+  }
   if (!providers.includes(c.provider))
     throw failure("invalid_provider", "Unknown speech provider");
   if (!key && c.provider !== "9router")
@@ -123,6 +137,11 @@ export async function transcribe(
   signal?: AbortSignal,
   fetcher?: Fetcher,
 ) {
+  if (c.provider === "local-kokoro")
+    throw failure(
+      "invalid_provider",
+      "Local Kokoro supports speech output only",
+    );
   fetcher ??= c.provider === "local-whisper" ? localFetch : fetch;
   const { base, headers } = config(c, key);
   if (!audio?.length || audio.length > 20 * 1024 * 1024)
@@ -232,8 +251,9 @@ export async function synthesize(
   key: string,
   text: unknown,
   signal?: AbortSignal,
-  fetcher: Fetcher = fetch,
+  fetcher?: Fetcher,
 ) {
+  fetcher ??= c.provider === "local-kokoro" ? localFetch : fetch;
   if (c.provider === "local-whisper")
     throw failure(
       "invalid_provider",
@@ -263,8 +283,8 @@ export async function synthesize(
     body = {
       model: c.model,
       input: text,
-      voice: c.voice || "coral",
-      response_format: "mp3",
+      voice: c.voice || (c.provider === "local-kokoro" ? "af_heart" : "coral"),
+      response_format: c.provider === "local-kokoro" ? "wav" : "mp3",
     };
   }
   const r = await request(
@@ -293,6 +313,7 @@ export async function synthesize(
   const chunks = [];
   try {
     while (true) {
+      signal?.throwIfAborted();
       const { done, value } = await reader.read();
       if (done) break;
       size += value.length;
@@ -309,8 +330,16 @@ export async function synthesize(
       "Speech provider returned empty audio",
       502,
     );
+  signal?.throwIfAborted();
+  const audio = Buffer.concat(chunks);
+  if (c.provider === "local-kokoro" && !validWav(audio))
+    throw failure(
+      "malformed_response",
+      "Local Kokoro returned invalid WAV audio",
+      502,
+    );
   return {
-    audio: Buffer.concat(chunks),
+    audio,
     mime: mime === "application/octet-stream" ? "audio/mpeg" : mime,
   };
 }
@@ -327,4 +356,40 @@ export function previewConfig(config: SpeechConfig, model: unknown) {
       "Choose a listed Deepgram voice to preview",
     );
   return { ...config, model };
+}
+
+// Validate the complete PCM container before handing local runtime bytes to playback.
+function validWav(audio: Buffer): boolean {
+  if (
+    audio.length < 44 ||
+    audio.toString("ascii", 0, 4) !== "RIFF" ||
+    audio.toString("ascii", 8, 12) !== "WAVE" ||
+    audio.readUInt32LE(4) !== audio.length - 8
+  )
+    return false;
+  let format = false,
+    data = false;
+  for (let offset = 12; offset + 8 <= audio.length;) {
+    const id = audio.toString("ascii", offset, offset + 4);
+    const length = audio.readUInt32LE(offset + 4);
+    const start = offset + 8,
+      end = start + length;
+    if (end > audio.length) return false;
+    if (id === "fmt ") {
+      if (
+        length < 16 ||
+        audio.readUInt16LE(start) !== 1 ||
+        audio.readUInt16LE(start + 2) !== 1 ||
+        audio.readUInt32LE(start + 4) !== 24000 ||
+        audio.readUInt32LE(start + 8) !== 48000 ||
+        audio.readUInt16LE(start + 12) !== 2 ||
+        audio.readUInt16LE(start + 14) !== 16
+      )
+        return false;
+      format = true;
+    }
+    if (id === "data") data = length > 0 && length % 2 === 0;
+    offset = end + (length % 2);
+  }
+  return format && data;
 }

@@ -333,7 +333,9 @@ export async function createApp({
             res,
             await transcribe(
               c,
-              c.provider === "local-whisper" ? "" : await store.get(c.provider),
+              c.provider === "local-whisper" || c.provider === "local-kokoro"
+                ? ""
+                : await store.get(c.provider),
               audio,
               req.headers["content-type"] || "audio/webm",
               ac.signal,
@@ -356,7 +358,9 @@ export async function createApp({
           res.on("close", () => ac.abort());
           const r = await synthesize(
             c,
-            c.provider === "local-whisper" ? "" : await store.get(c.provider),
+            c.provider === "local-whisper" || c.provider === "local-kokoro"
+              ? ""
+              : await store.get(c.provider),
             string(b.text),
             ac.signal,
           );
