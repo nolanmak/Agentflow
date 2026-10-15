@@ -271,3 +271,22 @@ test("canceling a stalled real local audio response closes transport and permits
     await new Promise<void>((r) => engine.close(() => r()));
   }
 });
+test("rejected local endpoint settings leave persisted and active selections unchanged", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "af-kokoro-invalid-"));
+  const store = { get: async () => "" };
+  try {
+    const s = new Settings(store, dir);
+    await s.update({ tts: local });
+    const saved = structuredClone(s.value);
+    await assert.rejects(
+      () => s.update({ tts: { ...local, baseUrl: "https://cloud.example" } }),
+      /loopback/,
+    );
+    assert.deepEqual(s.value, saved);
+    const restored = new Settings(store, dir);
+    await restored.init();
+    assert.deepEqual(restored.value, saved);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

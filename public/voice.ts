@@ -34,3 +34,23 @@ export class VoiceGate {
     return this.spoke && now - this.last > 900;
   }
 }
+
+// Preserve every character while respecting the speech API's UTF-16 text limit.
+export function speechChunks(text: string): string[] {
+  const chunks: string[] = [];
+  while (text.length > 12000) {
+    let end = 12000;
+    const prefix = text.slice(0, end);
+    const whitespace = [...prefix.matchAll(/\s/g)].at(-1);
+    if (whitespace && whitespace.index > 0) end = whitespace.index + 1;
+    else if (
+      /[\uD800-\uDBFF]/.test(text[end - 1]) &&
+      /[\uDC00-\uDFFF]/.test(text[end])
+    )
+      end--;
+    chunks.push(text.slice(0, end));
+    text = text.slice(end);
+  }
+  if (text) chunks.push(text);
+  return chunks;
+}
