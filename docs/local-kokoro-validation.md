@@ -9,7 +9,7 @@ Issue: [#24](https://github.com/nolanmak/Agentflow/issues/24). Reference QA: 202
 | AC3 lifecycle | `test_local_kokoro.py` asset validation, atomic install, explicit missing-model failure, owned control stop, invalid-origin rejection; setup/start/status/stop exercised with real engine |
 | AC4 playback | Browser ordered retry test and exact-text chunking test; real `/api/synthesize` returned PCM WAV; CLI and MCP successfully executed native playback offline at saved 1.25× speed |
 | AC5 interruption/retry | Browser pending-synthesis and delayed-replay tests; real Chromium WAV playback pause measured 1.3–2.8 ms (250 ms bound); no new agent turn on Replay; real HTTP stalled-response abort/recovery and runtime disconnect tests |
-| AC6 failure boundaries | Adapter tests cover invalid model/voice, empty text, malformed and oversized audio, cancellation and runtime HTTP failures; lifecycle tests cover bounded requests and assets; full deterministic suites |
+| AC6 failure boundaries | Runtime tests cover invalid model/voice, empty/oversized text, Unicode payloads, output bounds and deadlines; adapter tests cover malformed/oversized audio, cancellation and HTTP failures; lifecycle tests cover asset integrity, occupied ports, idempotency and startup recovery; full deterministic suites |
 | AC7 real-engine measurements | Offline cold 1.975 s, warm 1.714–1.741 s for 5.735 s audio, RSS about754 MiB; full model selected after int8 CPU operator incompatibility; real CLI/MCP smoke succeeded |
 | AC8 delivery | PR/CI and merge recorded in issue; task worktree cleaned after merge |
 
@@ -32,9 +32,11 @@ Issue: [#24](https://github.com/nolanmak/Agentflow/issues/24). Reference QA: 202
 - `npm run typecheck`
 - `npm test`:65 tests passed
 - `npm run test:e2e`:19 tests passed, including real browser audio-element interruption
-- `python3 scripts/test_local_kokoro.py`
+- `python3 scripts/test_local_kokoro.py`:15 tests passed
 - `python3 scripts/test_local_whisper.py`:9 tests passed
 - `node scripts/live-local-kokoro.mjs --play` under the sandbox profile in the setup guide: real app synthesis, CLI and MCP playback passed
 - `git diff --check`
 
 The browser tests use synthetic audio and fake native sessions, while real-engine checks use synthetic text and disposable application settings. No personal recordings, native histories or cloud credentials are fixtures. Native audio-player success is observed, but speaker quality, microphone/echo behavior and sleep/wake are not human-verified here. General device QA remains tracked in #23.
+
+- Unicode request regression first failed HTTP413 for12000 escaped characters; the byte limit now accommodates the complete permitted Unicode text while retaining the character bound.
