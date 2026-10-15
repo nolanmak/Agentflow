@@ -15,8 +15,10 @@ jobs:
         with:
           node-version: '26.5.1'
           cache: npm
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      - run: python3 scripts/test_local_whisper.py
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e

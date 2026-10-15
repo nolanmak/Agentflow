@@ -51,6 +51,7 @@ interface Elements {
   ttsVoice: HTMLInputElement;
   ttsSpeed: HTMLSelectElement;
   routerUrl: HTMLInputElement;
+  localWhisperUrl: HTMLInputElement;
   keyRows: HTMLElement;
   settingsNotice: HTMLElement;
   routerModels: HTMLButtonElement;

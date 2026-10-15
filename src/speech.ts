@@ -1,4 +1,6 @@
-import { record } from "../public/contracts.js";
+import { localFetch } from "./local-http.js";
+import { normalizeLocalAudio } from "./local-audio.js";
+import { record, localWhisperUrl } from "../public/contracts.js";
 import type { SpeechConfig, Provider } from "../public/contracts.js";
 export type Fetcher = (url: string, options: RequestInit) => Promise<Response>;
 import { deepgramVoice } from "../public/deepgram-voices.js";
@@ -7,6 +9,7 @@ export const providers: Provider[] = [
   "openai",
   "elevenlabs",
   "9router",
+  "local-whisper",
 ];
 export const defaults = {
   deepgram: { stt: "nova-3", tts: "aura-2-helena-en", voice: "" },
@@ -16,12 +19,18 @@ export const defaults = {
     voice: "coral",
   },
   elevenlabs: { stt: "scribe_v2", tts: "eleven_flash_v2_5", voice: "" },
+  "local-whisper": { stt: "base.en", tts: "", voice: "" },
   "9router": { stt: "", tts: "", voice: "" },
 };
 export function failure(code: string, message: string, status = 400) {
   return Object.assign(new Error(message), { code, status });
 }
 function config(c: SpeechConfig, key: string) {
+  if (c.provider === "local-whisper")
+    return {
+      base: localWhisperUrl(c.baseUrl),
+      headers: {} as Record<string, string>,
+    };
   if (!providers.includes(c.provider))
     throw failure("invalid_provider", "Unknown speech provider");
   if (!key && c.provider !== "9router")
@@ -112,15 +121,28 @@ export async function transcribe(
   audio: Buffer,
   mime = "audio/webm",
   signal?: AbortSignal,
-  fetcher: Fetcher = fetch,
+  fetcher?: Fetcher,
 ) {
+  fetcher ??= c.provider === "local-whisper" ? localFetch : fetch;
   const { base, headers } = config(c, key);
   if (!audio?.length || audio.length > 20 * 1024 * 1024)
     throw failure("invalid_audio", "Audio must be between 1 byte and 20 MB");
   if (!/^audio\/(webm|wav|x-wav|mpeg|mp3|mp4|ogg|flac)(;.*)?$/.test(mime))
     throw failure("invalid_audio", "Unsupported audio format");
   let url: string, body: BodyInit;
-  if (c.provider === "deepgram") {
+  if (c.provider === "local-whisper") {
+    const normalized = await normalizeLocalAudio(audio, signal);
+    if (!normalized) return { text: "" };
+    url = `${base}/inference`;
+    body = new FormData();
+    body.append(
+      "file",
+      new Blob([new Uint8Array(normalized)], { type: "audio/wav" }),
+      "recording.wav",
+    );
+    body.append("response_format", "json");
+    body.append("temperature", "0");
+  } else if (c.provider === "deepgram") {
     url = `${base}/v1/listen?model=${encodeURIComponent(c.model)}&smart_format=true`;
     headers["Content-Type"] = mime;
     body = new Uint8Array(audio);
@@ -140,9 +162,43 @@ export async function transcribe(
     signal,
     fetcher,
   );
+  let payload: unknown;
+  if (c.provider === "local-whisper") {
+    const reader = r.body?.getReader();
+    if (!reader)
+      throw failure(
+        "malformed_response",
+        "Local Whisper returned no transcript",
+        502,
+      );
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    try {
+      while (true) {
+        signal?.throwIfAborted();
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.length;
+        if (size > 65536)
+          throw failure(
+            "malformed_response",
+            "Local Whisper transcript response is too large",
+            502,
+          );
+        chunks.push(value);
+      }
+      payload = Buffer.concat(chunks).toString("utf8");
+    } finally {
+      await reader.cancel().catch(() => {});
+    }
+  }
   let data: Record<string, unknown>;
   try {
-    data = record(await r.json());
+    data = record(
+      c.provider === "local-whisper"
+        ? JSON.parse(String(payload))
+        : await r.json(),
+    );
   } catch {
     throw failure(
       "malformed_response",
@@ -168,6 +224,7 @@ export async function transcribe(
       "Speech provider returned no valid transcript",
       502,
     );
+  signal?.throwIfAborted();
   return { text: text.trim() };
 }
 export async function synthesize(
@@ -177,6 +234,11 @@ export async function synthesize(
   signal?: AbortSignal,
   fetcher: Fetcher = fetch,
 ) {
+  if (c.provider === "local-whisper")
+    throw failure(
+      "invalid_provider",
+      "Local Whisper supports transcription only",
+    );
   const { base, headers } = config(c, key);
   if (typeof text !== "string" || !text.trim() || text.length > 12000)
     throw failure(
