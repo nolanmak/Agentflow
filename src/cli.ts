@@ -9,6 +9,7 @@ import {
 } from "../public/contracts.js";
 import { object } from "./native-protocol.js";
 import WebSocket from "ws";
+import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -285,6 +286,31 @@ async function mcp() {
 }
 async function main() {
   const [command, ...args] = process.argv.slice(2);
+  if (command === "local-whisper") {
+    const script = fileURLToPath(
+      new URL("../scripts/local-whisper.py", import.meta.url),
+    );
+    const code = await new Promise<number>((resolve, reject) => {
+      const child = spawn(
+        "python3",
+        [
+          script,
+          "--app",
+          "agentflow",
+          "--state-dir",
+          join(appHome, "local-whisper"),
+          ...args,
+        ],
+        { stdio: "inherit" },
+      );
+      child.on("error", () =>
+        reject(Error("Local Whisper setup requires Python 3 on PATH")),
+      );
+      child.on("close", (code) => resolve(code ?? 1));
+    });
+    process.exitCode = code;
+    return;
+  }
   if (command === "service") {
     console.log(await service(args[0] || "status"));
     return;
@@ -334,7 +360,7 @@ async function main() {
     return;
   }
   console.log(
-    'Agentflow\n  start | open | status\n  run codex|claude [--resume ID]\n  speak [--speed 0.75–2] --text "Hello" (or pipe text through stdin)\n  service install|status|restart|stop|uninstall\n  mcp',
+    'Agentflow\n  start | open | status\n  run codex|claude [--resume ID]\n  speak [--speed 0.75–2] --text "Hello" (or pipe text through stdin)\n  service install|status|restart|stop|uninstall\n  local-whisper setup|import-model|start|status|stop [--help]\n  mcp',
   );
 }
 main().catch((e) => {

@@ -1,5 +1,6 @@
 import {
   record,
+  localWhisperUrl,
   isProvider,
   parseSettings,
   playbackSpeed,
@@ -44,7 +45,8 @@ export class Settings {
   }
   async public(): Promise<PublicSettings> {
     const configured = {} as Record<Provider, boolean>;
-    for (const p of providers) configured[p] = !!(await this.store.get(p));
+    for (const p of providers)
+      configured[p] = p === "local-whisper" || !!(await this.store.get(p));
     return { ...structuredClone(this.value), configured, defaults };
   }
   async update(value: unknown) {
@@ -57,7 +59,15 @@ export class Settings {
           throw failure("invalid_provider", "Invalid provider");
         if (typeof c.model !== "string" || c.model.length > 200)
           throw failure("invalid_model", "Invalid model");
+        if (side === "tts" && c.provider === "local-whisper")
+          throw failure(
+            "invalid_provider",
+            "Local Whisper supports transcription only",
+          );
         next[side] = {
+          ...(c.provider === "local-whisper"
+            ? { baseUrl: localWhisperUrl(c.baseUrl) }
+            : {}),
           provider: c.provider,
           model: c.model.trim(),
           voice: typeof c.voice === "string" ? c.voice.slice(0, 200) : "",
@@ -84,7 +94,10 @@ export class Settings {
   async speech(side: SpeechSide) {
     return {
       ...structuredClone(this.value[side]),
-      baseUrl: this.value.routerUrl,
+      baseUrl:
+        this.value[side].provider === "local-whisper"
+          ? localWhisperUrl(this.value[side].baseUrl)
+          : this.value.routerUrl,
     };
   }
 }

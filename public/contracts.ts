@@ -1,5 +1,6 @@
 export type AgentKind = "codex" | "claude";
-export type Provider = "deepgram" | "openai" | "elevenlabs" | "9router";
+export type Provider =
+  "deepgram" | "openai" | "elevenlabs" | "9router" | "local-whisper";
 export type SpeechSide = "stt" | "tts";
 export interface SpeechConfig {
   provider: Provider;
@@ -105,7 +106,9 @@ export function errorCode(error: unknown): string | number | undefined {
 export function isProvider(value: unknown): value is Provider {
   return (
     typeof value === "string" &&
-    ["deepgram", "openai", "elevenlabs", "9router"].includes(value)
+    ["deepgram", "openai", "elevenlabs", "9router", "local-whisper"].includes(
+      value,
+    )
   );
 }
 export function isAgent(value: unknown): value is AgentKind {
@@ -137,9 +140,14 @@ export function parseSettings(value: unknown): SettingsValue {
     return {
       provider: c.provider,
       model: string(c.model),
+      ...(c.provider === "local-whisper"
+        ? { baseUrl: localWhisperUrl(c.baseUrl) }
+        : {}),
       ...(typeof c.voice === "string" ? { voice: c.voice } : {}),
     };
   }
+  if (record(r.tts).provider === "local-whisper")
+    throw Error("Local Whisper supports transcription only");
   return {
     stt: side(r.stt),
     tts: { ...side(r.tts), speed: playbackSpeed(record(r.tts).speed) },
@@ -283,12 +291,14 @@ export function parsePublicSettings(value: unknown): PublicSettings {
       openai: boolean(cfg.openai),
       elevenlabs: boolean(cfg.elevenlabs),
       "9router": boolean(cfg["9router"]),
+      "local-whisper": true,
     },
     defaults: {
       deepgram: defaults("deepgram"),
       openai: defaults("openai"),
       elevenlabs: defaults("elevenlabs"),
       "9router": defaults("9router"),
+      "local-whisper": { stt: "base.en", tts: "", voice: "" },
     },
   };
 }
@@ -324,4 +334,30 @@ export function parseRouterModels(value: unknown) {
       models: list(r.models, (m) => ({ id: string(record(m).id) })),
     };
   });
+}
+
+export function localWhisperUrl(
+  value: unknown = "http://127.0.0.1:17864",
+): string {
+  const message =
+    "Local Whisper requires a loopback HTTP URL without credentials, paths or queries";
+  let u: URL;
+  try {
+    u = new URL(String(value));
+  } catch {
+    throw Error(message);
+  }
+  if (
+    u.protocol !== "http:" ||
+    !["127.0.0.1", "[::1]", "localhost"].includes(u.hostname) ||
+    u.username ||
+    u.password ||
+    u.pathname !== "/" ||
+    u.search ||
+    u.hash
+  )
+    throw Error(message);
+  // Avoid DNS resolution even for localhost.
+  if (u.hostname === "localhost") u.hostname = "127.0.0.1";
+  return u.origin;
 }

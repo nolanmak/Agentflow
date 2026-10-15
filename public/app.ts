@@ -56,6 +56,7 @@ const names = {
   openai: "OpenAI",
   elevenlabs: "ElevenLabs",
   "9router": "9Router",
+  "local-whisper": "Local Whisper",
 };
 let token: string,
   settings: PublicSettings,
@@ -86,13 +87,15 @@ interface ApiOptions {
   body?: unknown;
   raw?: boolean;
   signal?: AbortSignal;
+  sttSnapshot?: string;
 }
 async function api<T = Record<string, unknown>>(
   path: string,
   decode: (value: unknown) => T,
-  { method = "GET", body, raw = false, signal }: ApiOptions = {},
+  { method = "GET", body, raw = false, signal, sttSnapshot }: ApiOptions = {},
 ): Promise<T> {
   const headers: Record<string, string> = { "x-agentflow-token": token };
+  if (sttSnapshot) headers["x-agentflow-stt"] = sttSnapshot;
   if (raw && !(body instanceof Blob)) throw Error("Expected audio blob");
   if (body !== undefined)
     headers["Content-Type"] = raw
@@ -459,8 +462,14 @@ async function listen() {
     return;
   }
   call = true;
-  const g = generation;
+  aborter?.abort();
+  const g = ++generation;
+  const sttSnapshot = JSON.stringify({
+    stt: settings.stt,
+    routerUrl: settings.routerUrl,
+  });
   aborter = new AbortController();
+  const recordingAborter = aborter;
   notice("");
   try {
     stream = await navigator.mediaDevices.getUserMedia({
@@ -485,6 +494,7 @@ async function listen() {
       if (e.data.size) chunks.push(e.data);
     };
     recorder.onstop = async () => {
+      if (g !== generation) return;
       const blob = new Blob(chunks, { type: recorder.mimeType });
       releaseMic();
       if (g !== generation) return;
@@ -498,7 +508,8 @@ async function listen() {
           method: "POST",
           body: blob,
           raw: true,
-          signal: aborter.signal,
+          signal: recordingAborter.signal,
+          sttSnapshot,
         });
         if (g !== generation) return;
         if (!d.text.trim()) {
@@ -512,7 +523,7 @@ async function listen() {
         $("message").value = d.text;
         await send(d.text);
       } catch (e) {
-        report(e);
+        if (g === generation) report(e);
       }
     };
     recorder.start(200);
@@ -536,7 +547,7 @@ async function listen() {
       const finish = gate.sample(rms, performance.now());
       if (
         (finish && $("handsfree").checked) ||
-        performance.now() - started > 90000
+        performance.now() - started > 89000
       ) {
         recorder.stop();
         return;
@@ -669,6 +680,7 @@ function paintSettings() {
   for (const side of ["stt", "tts"] as const) {
     $(`${side}Provider`).replaceChildren();
     for (const [id, name] of Object.entries(names)) {
+      if (side === "tts" && id === "local-whisper") continue;
       const o = new Option(name, id);
       $(`${side}Provider`).add(o);
     }
@@ -678,6 +690,7 @@ function paintSettings() {
   $("ttsVoice").value = settings.tts.voice || "";
   $("ttsSpeed").value = String(settings.tts.speed ?? 1);
   $("routerUrl").value = settings.routerUrl;
+  $("localWhisperUrl").value = settings.stt.baseUrl || "http://127.0.0.1:17864";
   $("sttLabel").textContent = names[settings.stt.provider] + " listens";
   $("ttsLabel").textContent =
     (settings.tts.provider === "deepgram" && deepgramVoice(settings.tts.model)
@@ -688,6 +701,7 @@ function paintSettings() {
   paintVoicePicker();
   $("keyRows").replaceChildren();
   for (const [id, name] of Object.entries(names)) {
+    if (id === "local-whisper") continue;
     const row = document.createElement("div");
     row.className = "keyrow";
     const label = document.createElement("span");
@@ -829,7 +843,11 @@ $("settingsForm").onsubmit = async (e) => {
     settings = await api("/settings", parsePublicSettings, {
       method: "PUT",
       body: {
-        stt: { provider: $("sttProvider").value, model: $("sttModel").value },
+        stt: {
+          provider: $("sttProvider").value,
+          model: $("sttModel").value,
+          baseUrl: $("localWhisperUrl").value,
+        },
         tts: {
           provider: $("ttsProvider").value,
           model: $("ttsModel").value,

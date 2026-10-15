@@ -15,3 +15,12 @@ test("built CLI and browser assets run without TypeScript at runtime", async () 
   const pkg = JSON.parse(await readFile("package.json", "utf8"));
   assert.equal(pkg.bin.agentflow, "./dist/src/cli.js");
 });
+test("built local-whisper CLI exposes setup help without starting services", async () => {
+  const { stdout } = await promisify(execFile)(process.execPath, [
+    "dist/src/cli.js",
+    "local-whisper",
+    "--help",
+  ]);
+  assert.match(stdout, /import-model/);
+  assert.match(stdout, /setup/);
+});

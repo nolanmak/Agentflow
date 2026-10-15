@@ -115,3 +115,23 @@ screenshots. For sensitive reports, follow [SECURITY.md](SECURITY.md).
 ## License
 
 Agentflow is licensed under the [MIT License](LICENSE).
+
+## Fully local transcription
+
+Select **Local Whisper** under Speech & settings → Listening. It runs speech recognition on your Mac with no API key or 9Router. Speaking still uses the independently selected TTS provider, and Codex/Claude retain their own model routing; local transcription does not make an agent conversation fully offline.
+
+Install `ffmpeg`, Python 3, and the pinned `whisper-server` runtime described in [local runtime setup](docs/local-whisper-runtime.md). Then explicitly prepare and start the engine:
+
+```sh
+agentflow local-whisper setup
+agentflow local-whisper start
+agentflow local-whisper status
+```
+
+The default URL is `http://127.0.0.1:17864`. To use an existing engine, enter its loopback HTTP origin in **Local Whisper URL**. The model setting is a label for the server's loaded model; changing it does not load a different model. Models are never downloaded while recording or during login. `agentflow local-whisper stop` only stops the engine owned by Agentflow. The helper accepts `import-model PATH --sha256 HASH` for an explicitly trusted local model; use `--help` for options. Agentflow's helper state lives beneath `$AGENTFLOW_HOME/local-whisper` (default `~/.config/agentflow/local-whisper`).
+
+Browser WebM/MP4/WAV recordings are converted in memory by ffmpeg to 16 kHz mono PCM WAV, with a 90-second duration limit, 20 MB input limit and 15-second conversion deadline. Set `AGENTFLOW_FFMPEG` to an absolute executable path if needed. No conversion files are retained. The local endpoint cannot contain remote hosts, credentials, paths, queries or redirects, and its transport bypasses global HTTP proxies. Silent/near-silent recordings do not reach Whisper. Very quiet speech may need a closer microphone.
+
+Each recording captures its listening settings before microphone permission is requested. Canceling or changing sessions discards late transcription and cannot submit it to the agent. Canceling closes local transport and terminates conversion, but whisper-server may continue inference internally; this is not a claim that HTTP disconnect preempts GPU computation. Inference has a 60-second timeout; check `agentflow local-whisper status`, the server's loaded model and the configured URL after engine errors.
+
+Tests and TDD evidence: [local transcription validation](docs/local-whisper-validation.md). Real microphone permission, audible playback and sleep/wake still require device acceptance.

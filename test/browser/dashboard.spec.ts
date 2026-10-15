@@ -16,6 +16,7 @@ const settings: PublicSettings = {
     openai: false,
     elevenlabs: false,
     "9router": false,
+    "local-whisper": true,
   },
   defaults: {
     deepgram: { stt: "nova-3", tts: "aura-2-thalia-en", voice: "" },
@@ -25,6 +26,7 @@ const settings: PublicSettings = {
       voice: "coral",
     },
     elevenlabs: { stt: "scribe_v2", tts: "eleven_flash_v2_5", voice: "" },
+    "local-whisper": { stt: "base.en", tts: "", voice: "" },
     "9router": { stt: "", tts: "", voice: "" },
   },
 };
@@ -381,4 +383,78 @@ test("voice preview is blocked during an active microphone conversation", async 
     "End the current conversation",
   );
   expect(calls).toBe(0);
+});
+test("local listening persists independently and is unavailable as TTS or API key", async ({
+  page,
+}) => {
+  await mock(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: /Native sync test/ }).click();
+  await page.locator("#settingsButton").click();
+  await page.locator("#sttProvider").selectOption("local-whisper");
+  await page.getByLabel("Local Whisper URL").fill("http://127.0.0.1:17864");
+  await expect(
+    page.locator('#ttsProvider option[value="local-whisper"]'),
+  ).toHaveCount(0);
+  await expect(page.getByLabel("Local Whisper API key")).toHaveCount(0);
+  await page.getByRole("button", { name: "Save preferences" }).click();
+  await expect(page.locator("#sttLabel")).toHaveText("Local Whisper listens");
+  await expect(page.locator("#ttsLabel")).toContainText("Deepgram");
+  await page.reload();
+  await expect(page.locator("#sessionId")).toHaveText(id);
+  await page.locator("#settingsButton").click();
+  await expect(page.getByLabel("Local Whisper URL")).toHaveValue(
+    "http://127.0.0.1:17864",
+  );
+});
+test("recording snapshots listening settings and canceled inference cannot submit a turn", async ({
+  page,
+}) => {
+  const getTurn = await mock(page);
+  let snapshot: unknown;
+  let release: () => void = () => {};
+  await page.route("**/api/transcribe", async (route) => {
+    snapshot = route.request().headers()["x-agentflow-stt"];
+    await new Promise<void>((r) => (release = r));
+    await route.fulfill({ json: { text: "late transcript" } }).catch(() => {});
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: /Native sync test/ }).click();
+  await page.locator("#handsfree").uncheck();
+  await page.locator("#talk").click();
+  await expect(page.locator("#state")).toHaveText("Listening");
+  await page.waitForTimeout(300);
+  await page.locator("#talk").click();
+  await expect.poll(() => snapshot).toBeTruthy();
+  expect(JSON.parse(String(snapshot)).stt.provider).toBe("deepgram");
+  await page.locator("#end").click();
+  release();
+  await page.waitForTimeout(200);
+  expect(getTurn()).toBeUndefined();
+});
+test("starting another recording invalidates the previous pending transcript", async ({
+  page,
+}) => {
+  const getTurn = await mock(page);
+  let release: () => void = () => {};
+  let received = false;
+  await page.route("**/api/transcribe", async (route) => {
+    received = true;
+    await new Promise<void>((r) => (release = r));
+    await route.fulfill({ json: { text: "superseded" } }).catch(() => {});
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: /Native sync test/ }).click();
+  await page.locator("#handsfree").uncheck();
+  await page.locator("#talk").click();
+  await expect(page.locator("#state")).toHaveText("Listening");
+  await page.waitForTimeout(300);
+  await page.locator("#talk").click();
+  await expect.poll(() => received).toBe(true);
+  await page.locator("#talk").click();
+  await expect(page.locator("#state")).toHaveText("Listening");
+  release();
+  await page.waitForTimeout(200);
+  expect(getTurn()).toBeUndefined();
+  await page.locator("#end").click();
 });

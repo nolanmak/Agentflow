@@ -8,6 +8,7 @@ import {
   errorCode,
   playbackSpeed,
   parseTerminalMessage,
+  parseSettings,
   type KeyStorage,
 } from "../public/contracts.js";
 import type { TerminalSession } from "./terminal.js";
@@ -301,7 +302,30 @@ export async function createApp({
           return reply(res, { ok: true });
         }
         if (req.method === "POST" && url.pathname === "/api/transcribe") {
-          const c = await settings.speech("stt");
+          let c = await settings.speech("stt");
+          const snapshot = req.headers["x-agentflow-stt"];
+          if (snapshot !== undefined) {
+            try {
+              if (typeof snapshot !== "string" || snapshot.length > 4096)
+                throw Error();
+              const parsed = parseSettings({
+                ...record(JSON.parse(snapshot)),
+                tts: settings.value.tts,
+              });
+              c = {
+                ...parsed.stt,
+                baseUrl:
+                  parsed.stt.provider === "local-whisper"
+                    ? parsed.stt.baseUrl!
+                    : parsed.routerUrl,
+              };
+            } catch {
+              throw failure(
+                "invalid_configuration",
+                "Invalid recording speech settings. Start a new recording.",
+              );
+            }
+          }
           const audio = await body(req, 20 * 1024 * 1024);
           const ac = new AbortController();
           res.on("close", () => ac.abort());
@@ -309,7 +333,7 @@ export async function createApp({
             res,
             await transcribe(
               c,
-              await store.get(c.provider),
+              c.provider === "local-whisper" ? "" : await store.get(c.provider),
               audio,
               req.headers["content-type"] || "audio/webm",
               ac.signal,
@@ -332,7 +356,7 @@ export async function createApp({
           res.on("close", () => ac.abort());
           const r = await synthesize(
             c,
-            await store.get(c.provider),
+            c.provider === "local-whisper" ? "" : await store.get(c.provider),
             string(b.text),
             ac.signal,
           );
