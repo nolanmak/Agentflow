@@ -207,7 +207,7 @@ def serve(state, port, token):
                 return
             try:
                 length = int(self.headers.get("Content-Length", "0"))
-                if not 0 < length <= 16384:
+                if not 0 < length <= 192 * 1024:
                     self.send_error(413)
                     return
                 self.connection.settimeout(5)

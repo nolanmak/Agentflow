@@ -220,6 +220,17 @@ class LifecycleTests(unittest.TestCase):
                 with urllib.request.urlopen(req) as response:
                     self.assertEqual(response.headers["Content-Type"], "audio/wav")
                     self.assertTrue(response.read().startswith(b"RIFF"))
+                # Text length is characters; JSON escaping can require twelve bytes per supplementary character.
+                req = urllib.request.Request(
+                    url + "/v1/audio/speech",
+                    data=json.dumps(
+                        dict(model="kokoro", input="😀" * 12000, voice="af_heart")
+                    ).encode(),
+                    headers={"Content-Type": "application/json"},
+                )
+                with urllib.request.urlopen(req) as response:
+                    self.assertEqual(response.status, 200)
+                    self.assertTrue(response.read().startswith(b"RIFF"))
                 req = urllib.request.Request(
                     url + "/health", headers={"Origin": "https://evil.test"}
                 )
