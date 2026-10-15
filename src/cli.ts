@@ -286,25 +286,24 @@ async function mcp() {
 }
 async function main() {
   const [command, ...args] = process.argv.slice(2);
-  if (command === "local-whisper") {
+  if (command === "local-whisper" || command === "local-kokoro") {
     const script = fileURLToPath(
-      new URL("../scripts/local-whisper.py", import.meta.url),
+      new URL(`../scripts/${command}.py`, import.meta.url),
     );
     const code = await new Promise<number>((resolve, reject) => {
       const child = spawn(
         "python3",
         [
           script,
-          "--app",
-          "agentflow",
+          ...(command === "local-whisper" ? ["--app", "agentflow"] : []),
           "--state-dir",
-          join(appHome, "local-whisper"),
+          join(appHome, command),
           ...args,
         ],
         { stdio: "inherit" },
       );
       child.on("error", () =>
-        reject(Error("Local Whisper setup requires Python 3 on PATH")),
+        reject(Error("Local speech setup requires Python 3 on PATH")),
       );
       child.on("close", (code) => resolve(code ?? 1));
     });
@@ -360,7 +359,7 @@ async function main() {
     return;
   }
   console.log(
-    'Agentflow\n  start | open | status\n  run codex|claude [--resume ID]\n  speak [--speed 0.75–2] --text "Hello" (or pipe text through stdin)\n  service install|status|restart|stop|uninstall\n  local-whisper setup|import-model|start|status|stop [--help]\n  mcp',
+    'Agentflow\n  start | open | status\n  run codex|claude [--resume ID]\n  speak [--speed 0.75–2] --text "Hello" (or pipe text through stdin)\n  service install|status|restart|stop|uninstall\n  local-whisper setup|import-model|start|status|stop [--help]\n  local-kokoro setup|start|status|stop [--help]\n  mcp',
   );
 }
 main().catch((e) => {

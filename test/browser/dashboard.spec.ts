@@ -17,6 +17,7 @@ const settings: PublicSettings = {
     elevenlabs: false,
     "9router": false,
     "local-whisper": true,
+    "local-kokoro": true,
   },
   defaults: {
     deepgram: { stt: "nova-3", tts: "aura-2-thalia-en", voice: "" },
@@ -27,6 +28,7 @@ const settings: PublicSettings = {
     },
     elevenlabs: { stt: "scribe_v2", tts: "eleven_flash_v2_5", voice: "" },
     "local-whisper": { stt: "base.en", tts: "", voice: "" },
+    "local-kokoro": { stt: "", tts: "kokoro", voice: "af_heart" },
     "9router": { stt: "", tts: "", voice: "" },
   },
 };
@@ -546,4 +548,215 @@ test("stale microphone permission rejection cannot stop the current recording", 
   );
   await expect(page.locator("#state")).toHaveText("Listening");
   await page.locator("#end").click();
+});
+
+test("local Kokoro output is independent, keyless and saved with voice and speed", async ({
+  page,
+}) => {
+  await mock(page);
+  await page.goto("/");
+  await page.locator("#settingsButton").click();
+  await expect(
+    page.locator('#ttsProvider option[value="local-kokoro"]'),
+  ).toHaveCount(1);
+  await expect(
+    page.locator('#sttProvider option[value="local-kokoro"]'),
+  ).toHaveCount(0);
+  await page.locator("#ttsProvider").selectOption("local-kokoro");
+  await expect(page.locator("#ttsVoice")).toHaveValue("af_heart");
+  await expect(page.getByLabel("Local Kokoro API key")).toHaveCount(0);
+  await page.locator("#ttsSpeed").selectOption("1.25");
+  const saved = page.waitForRequest(
+    (r) => r.url().endsWith("/api/settings") && r.method() === "PUT",
+  );
+  await page.getByRole("button", { name: "Save preferences" }).click();
+  const body = (await saved).postDataJSON();
+  expect(body.stt.provider).toBe("deepgram");
+  expect(body.tts).toMatchObject({
+    provider: "local-kokoro",
+    model: "kokoro",
+    voice: "af_heart",
+    speed: 1.25,
+    baseUrl: "http://127.0.0.1:17865",
+  });
+  await expect(page.locator("#ttsLabel")).toContainText("Local Kokoro speaks");
+  await page.locator("#testVoice").click();
+  await expect(page.locator("#state")).not.toHaveText("Error");
+});
+
+test("voice test can be interrupted during synthesis and cannot play a late response", async ({
+  page,
+}) => {
+  await mock(page);
+  let release!: () => void;
+  const held = new Promise<void>((r) => {
+    release = r;
+  });
+  await page.route("**/api/synthesize", async (route) => {
+    await held;
+    await route
+      .fulfill({ contentType: "audio/wav", body: wav() })
+      .catch(() => {});
+  });
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "playedCount", { value: { count: 0 } });
+    HTMLMediaElement.prototype.play = function () {
+      (window as unknown as { playedCount: { count: number } }).playedCount
+        .count++;
+      return Promise.resolve();
+    };
+  });
+  await page.goto("/");
+  const pending = page.waitForRequest("**/api/synthesize");
+  await page.locator("#testVoice").click();
+  await pending;
+  await expect(page.locator("#interrupt")).toBeEnabled();
+  await page.locator("#interrupt").click();
+  release();
+  await expect(page.locator("#state")).toHaveText("Interrupted");
+  expect(
+    await page.evaluate(
+      () =>
+        (window as unknown as { playedCount: { count: number } }).playedCount
+          .count,
+    ),
+  ).toBe(0);
+});
+
+test("local voice playback pauses within 250ms and replay never dispatches a new turn", async ({
+  page,
+}) => {
+  await mock(page);
+  let turns = 0;
+  page.on("request", (r) => {
+    if (r.url().endsWith("/api/turns")) turns++;
+  });
+  const long = Buffer.alloc(44 + 160000);
+  wav().copy(long, 0, 0, 44);
+  long.writeUInt32LE(long.length - 8, 4);
+  long.writeUInt32LE(long.length - 44, 40);
+  for (let i = 44; i < long.length; i += 2)
+    long.writeInt16LE(
+      Math.round(1000 * Math.sin((((i - 44) / 2) * Math.PI * 2 * 440) / 8000)),
+      i,
+    );
+  await page.route("**/api/synthesize", (r) =>
+    r.fulfill({ contentType: "audio/wav", body: long }),
+  );
+  await page.addInitScript(() => {
+    const play = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function () {
+      Object.assign(window, { testAudio: this });
+      return play.call(this);
+    };
+  });
+  await page.goto("/");
+  await page.locator("#settingsButton").click();
+  await page.locator("#ttsProvider").selectOption("local-kokoro");
+  await page.getByRole("button", { name: "Save preferences" }).click();
+  await page.getByRole("button", { name: /Native sync test/ }).click();
+  await page.getByRole("button", { name: "Show transcript" }).click();
+  await page.locator("#replay").click();
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const a = (window as unknown as { testAudio?: HTMLAudioElement })
+          .testAudio;
+        return Boolean(a && !a.paused && a.currentTime > 0);
+      }),
+    )
+    .toBe(true);
+  const elapsed = await page.evaluate(() => {
+    const a = (window as unknown as { testAudio: HTMLAudioElement }).testAudio;
+    const start = performance.now();
+    document.getElementById("interrupt")!.click();
+    if (!a.paused) throw Error("Playback did not pause synchronously");
+    return performance.now() - start;
+  });
+  expect(elapsed).toBeLessThanOrEqual(250);
+  console.log("Local playback interrupt ms:", elapsed);
+  expect(turns).toBe(0);
+});
+
+test("interrupting replay preserves Interrupted after a delayed synthesis response", async ({
+  page,
+}) => {
+  await mock(page);
+  let release!: () => void;
+  const held = new Promise<void>((r) => {
+    release = r;
+  });
+  await page.route("**/api/synthesize", async (route) => {
+    await held;
+    await route
+      .fulfill({ contentType: "audio/wav", body: wav() })
+      .catch(() => {});
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: /Native sync test/ }).click();
+  await page.getByRole("button", { name: "Show transcript" }).click();
+  const pending = page.waitForRequest("**/api/synthesize");
+  await page.locator("#replay").click();
+  await pending;
+  await page.locator("#interrupt").click();
+  release();
+  await expect(page.locator("#state")).toHaveText("Interrupted");
+});
+
+test("failed speech keeps the error and explicit replay retries ordered sentences without another agent turn", async ({
+  page,
+}) => {
+  await mock(page);
+  await page.addInitScript(() => {
+    HTMLMediaElement.prototype.play = function () {
+      queueMicrotask(() => this.dispatchEvent(new Event("ended")));
+      return Promise.resolve();
+    };
+  });
+  let fail = true,
+    turns = 0;
+  const spoken: string[] = [];
+  page.on("request", (r) => {
+    if (r.url().endsWith("/api/turns")) turns++;
+  });
+  await page.route("**/api/jobs/*", (r) =>
+    r.fulfill({
+      json: {
+        id: "fixture",
+        agent: "codex",
+        sessionId: id,
+        cwd: "/tmp/test-project",
+        text: "hello",
+        status: "complete",
+        reply: "First sentence. Second sentence.",
+        events: [],
+        createdAt: "2026-09-19T00:00:00Z",
+      },
+    }),
+  );
+  await page.route("**/api/synthesize", (r) => {
+    spoken.push(r.request().postDataJSON().text);
+    return fail
+      ? r.fulfill({
+          status: 503,
+          json: { error: "Local engine is unavailable" },
+        })
+      : r.fulfill({ contentType: "audio/wav", body: wav() });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: /Native sync test/ }).click();
+  await page.locator("#message").fill("hello");
+  await page.getByRole("button", { name: "Send message" }).click();
+  await expect(page.locator("#state")).toHaveText("Let’s try that again");
+  expect(spoken).toEqual(["First sentence."]);
+  fail = false;
+  await page.getByRole("button", { name: "Show transcript" }).click();
+  await page.locator("#replay").click();
+  await expect(page.locator("#hint")).toHaveText("Replay complete.");
+  expect(spoken).toEqual([
+    "First sentence.",
+    "First sentence.",
+    "Second sentence.",
+  ]);
+  expect(turns).toBe(1);
 });

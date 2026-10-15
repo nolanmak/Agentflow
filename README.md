@@ -135,3 +135,7 @@ Browser WebM/MP4/WAV recordings are converted in memory by ffmpeg to 16 kHz mono
 Each recording captures its listening settings before microphone permission is requested. Canceling or changing sessions discards late transcription and cannot submit it to the agent. Canceling closes local transport and terminates conversion, but whisper-server may continue inference internally; this is not a claim that HTTP disconnect preempts GPU computation. Inference has a 60-second timeout; check `agentflow local-whisper status`, the server's loaded model and the configured URL after engine errors.
 
 Tests and TDD evidence: [local transcription validation](docs/local-whisper-validation.md). Real microphone permission, audible playback and sleep/wake still require device acceptance.
+
+### Local spoken replies
+
+Use [Local Kokoro](docs/local-kokoro.md) for keyless, offline voice output, independently of local Whisper input. Explicit setup installs the verified model and CPU runtime; select Local Kokoro in Speaking settings. Native agent reasoning remains independently configured.
