@@ -237,5 +237,207 @@ class LifecycleTests(unittest.TestCase):
                     child.join()
 
 
+class ManagedCliTests(unittest.TestCase):
+    def setUp(self):
+        import sys
+        import hashlib
+
+        self.directory = tempfile.TemporaryDirectory()
+        self.state = Path(self.directory.name)
+        self.wrapper = self.state / "venv/bin/python"
+        self.wrapper.parent.mkdir(parents=True)
+        self.wrapper.write_text(
+            "#!"
+            + sys.executable
+            + "\n"
+            + r"""import importlib.util, sys, types, time
+from pathlib import Path
+spec = importlib.util.spec_from_file_location("runtime", sys.argv[1])
+runtime = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(runtime)
+runtime.ASSETS = {"fixture": "FIXTURE_SHA"}
+class Engine:
+    @classmethod
+    def from_session(cls, *args):
+        state = Path(sys.argv[sys.argv.index("--state-dir")+1])
+        if (state/"fail").exists():
+            raise ValueError("synthetic load failure")
+        if (state/"hang").exists():
+            time.sleep(30)
+        return cls()
+    def get_voices(self):
+        return ["af_heart"]
+    def create(self, *args, **kwargs):
+        return [.1]*240, 24000
+class Options: pass
+sys.modules["kokoro_onnx"] = types.SimpleNamespace(Kokoro=Engine)
+sys.modules["onnxruntime"] = types.SimpleNamespace(SessionOptions=Options,InferenceSession=lambda *a,**k: None)
+sys.argv = sys.argv[1:]
+try:
+    runtime.main()
+except (OSError, ValueError) as error:
+    runtime.lifecycle.emit({"error":str(error)})
+    sys.exit(1)
+""".replace("FIXTURE_SHA", hashlib.sha256(b"fixture").hexdigest())
+        )
+        self.wrapper.chmod(0o700)
+        (self.state / "fixture").write_bytes(b"fixture")
+
+    def command(self, *args):
+        import subprocess
+
+        result = subprocess.run(
+            [str(self.wrapper), str(SCRIPT), "--state-dir", str(self.state), *args],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        return result.returncode, json.loads(result.stdout)
+
+    def free_port(self):
+        import socket
+
+        with socket.socket() as probe:
+            probe.bind(("127.0.0.1", 0))
+            return probe.getsockname()[1]
+
+    def tearDown(self):
+        self.command("stop")
+        self.directory.cleanup()
+
+    def test_start_is_idempotent_and_stop_releases_port(self):
+        import socket
+
+        port = self.free_port()
+        first = self.command("start", "--port", str(port))
+        self.assertEqual(first[0], 0, first)
+        second = self.command("start", "--port", str(port))
+        self.assertEqual(first, second)
+        self.assertTrue(self.command("status")[1]["owned"])
+        self.assertTrue(self.command("stop")[1]["stopped"])
+        self.assertFalse(self.command("stop")[1]["stopped"])
+        with socket.socket() as probe:
+            probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            probe.bind(("127.0.0.1", port))
+
+    def test_port_collision_preserves_unowned_listener(self):
+        import socket
+
+        with socket.socket() as listener:
+            listener.bind(("127.0.0.1", 0))
+            listener.listen()
+            port = listener.getsockname()[1]
+            code, result = self.command("start", "--port", str(port))
+            self.assertEqual(code, 1)
+            self.assertIn("port already in use", result["error"])
+            self.assertFalse(self.command("stop")[1]["stopped"])
+            with socket.create_connection(("127.0.0.1", port), timeout=1) as client:
+                accepted, _ = listener.accept()
+                accepted.close()
+
+    def test_start_failure_and_timeout_recover(self):
+        import socket
+
+        port = self.free_port()
+        for marker in ("fail", "hang"):
+            with self.subTest(marker=marker):
+                (self.state / marker).touch()
+                code, result = self.command(
+                    "start", "--port", str(port), "--timeout", "0.5"
+                )
+                self.assertEqual(code, 1)
+                self.assertIn("readiness failed", result["error"])
+                self.assertFalse(self.command("status")[1]["owned"])
+                (self.state / marker).unlink()
+                code, result = self.command(
+                    "start", "--port", str(port), "--timeout", "5"
+                )
+                self.assertEqual(code, 0, result)
+                self.assertTrue(result["ready"])
+                self.assertTrue(self.command("stop")[1]["stopped"])
+
+
+class SynthesisBoundsTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        import socket
+
+        spec = importlib.util.spec_from_file_location("k", SCRIPT)
+        self.runtime = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.runtime)
+        self.a, self.b = socket.socketpair()
+
+    def tearDown(self):
+        self.a.close()
+        self.b.close()
+
+    async def test_long_text_is_complete_and_audio_is_concatenated(self):
+        import wave
+        import struct
+
+        class Engine:
+            def __init__(self):
+                self.calls = []
+
+            def create(self, text, **kwargs):
+                self.calls.append(text)
+                return [len(self.calls) / 100], 24000
+
+        engine = Engine()
+        text = ("The quick brown fox jumps over the lazy dog. " * 200).strip()
+        data = await self.runtime.synthesize(engine, text, "af_heart", self.a)
+        self.assertEqual(" ".join(engine.calls), text)
+        self.assertTrue(all(len(part) <= 300 for part in engine.calls))
+        self.assertGreater(len(engine.calls), 1)
+        with wave.open(io.BytesIO(data)) as audio:
+            frames = audio.readframes(audio.getnframes())
+        self.assertEqual(
+            list(struct.unpack("<" + "h" * len(engine.calls), frames)),
+            [round(i / 100 * 32767) for i in range(1, len(engine.calls) + 1)],
+        )
+
+    async def test_oversized_audio_stops_before_another_batch(self):
+        class Oversized:
+            def __len__(self):
+                return 24 * 1024 * 1024
+
+        class Engine:
+            calls = 0
+
+            def create(self, *args, **kwargs):
+                self.calls += 1
+                return Oversized(), 24000
+
+        engine = Engine()
+        with self.assertRaisesRegex(ValueError, "output limit"):
+            await self.runtime.synthesize(
+                engine, "A sentence. " * 100, "af_heart", self.a
+            )
+        self.assertEqual(engine.calls, 1)
+
+    async def test_elapsed_deadline_stops_remaining_batches(self):
+        from unittest.mock import patch
+        import types
+
+        elapsed = [0]
+
+        class Engine:
+            calls = 0
+
+            def create(self, *args, **kwargs):
+                self.calls += 1
+                elapsed[0] = 56
+                return [0.1], 24000
+
+        engine = Engine()
+        with patch.object(
+            self.runtime, "time", types.SimpleNamespace(monotonic=lambda: elapsed[0])
+        ):
+            with self.assertRaisesRegex(TimeoutError, "deadline"):
+                await self.runtime.synthesize(
+                    engine, "A sentence. " * 100, "af_heart", self.a
+                )
+        self.assertEqual(engine.calls, 1)
+
+
 if __name__ == "__main__":
     unittest.main()
