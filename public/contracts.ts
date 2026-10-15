@@ -1,6 +1,11 @@
 export type AgentKind = "codex" | "claude";
 export type Provider =
-  "deepgram" | "openai" | "elevenlabs" | "9router" | "local-whisper";
+  | "deepgram"
+  | "openai"
+  | "elevenlabs"
+  | "9router"
+  | "local-whisper"
+  | "local-kokoro";
 export type SpeechSide = "stt" | "tts";
 export interface SpeechConfig {
   provider: Provider;
@@ -106,9 +111,14 @@ export function errorCode(error: unknown): string | number | undefined {
 export function isProvider(value: unknown): value is Provider {
   return (
     typeof value === "string" &&
-    ["deepgram", "openai", "elevenlabs", "9router", "local-whisper"].includes(
-      value,
-    )
+    [
+      "deepgram",
+      "openai",
+      "elevenlabs",
+      "9router",
+      "local-whisper",
+      "local-kokoro",
+    ].includes(value)
   );
 }
 export function isAgent(value: unknown): value is AgentKind {
@@ -142,12 +152,16 @@ export function parseSettings(value: unknown): SettingsValue {
       model: string(c.model),
       ...(c.provider === "local-whisper"
         ? { baseUrl: localWhisperUrl(c.baseUrl) }
-        : {}),
+        : c.provider === "local-kokoro"
+          ? { baseUrl: localKokoroUrl(c.baseUrl) }
+          : {}),
       ...(typeof c.voice === "string" ? { voice: c.voice } : {}),
     };
   }
   if (record(r.tts).provider === "local-whisper")
     throw Error("Local Whisper supports transcription only");
+  if (record(r.stt).provider === "local-kokoro")
+    throw Error("Local Kokoro supports speech output only");
   return {
     stt: side(r.stt),
     tts: { ...side(r.tts), speed: playbackSpeed(record(r.tts).speed) },
@@ -292,6 +306,7 @@ export function parsePublicSettings(value: unknown): PublicSettings {
       elevenlabs: boolean(cfg.elevenlabs),
       "9router": boolean(cfg["9router"]),
       "local-whisper": true,
+      "local-kokoro": true,
     },
     defaults: {
       deepgram: defaults("deepgram"),
@@ -299,6 +314,7 @@ export function parsePublicSettings(value: unknown): PublicSettings {
       elevenlabs: defaults("elevenlabs"),
       "9router": defaults("9router"),
       "local-whisper": { stt: "base.en", tts: "", voice: "" },
+      "local-kokoro": { stt: "", tts: "kokoro", voice: "af_heart" },
     },
   };
 }
@@ -360,4 +376,16 @@ export function localWhisperUrl(
   // Avoid DNS resolution even for localhost.
   if (u.hostname === "localhost") u.hostname = "127.0.0.1";
   return u.origin;
+}
+
+export function localKokoroUrl(
+  value: unknown = "http://127.0.0.1:17865",
+): string {
+  try {
+    return localWhisperUrl(value);
+  } catch {
+    throw Error(
+      "Local Kokoro requires a loopback HTTP URL without credentials, paths or queries",
+    );
+  }
 }

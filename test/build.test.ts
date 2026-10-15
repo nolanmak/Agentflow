@@ -24,3 +24,12 @@ test("built local-whisper CLI exposes setup help without starting services", asy
   assert.match(stdout, /import-model/);
   assert.match(stdout, /setup/);
 });
+test("built local-kokoro CLI exposes explicit lifecycle help without starting services", async () => {
+  const { stdout } = await promisify(execFile)(process.execPath, [
+    "dist/src/cli.js",
+    "local-kokoro",
+    "--help",
+  ]);
+  assert.match(stdout, /setup/);
+  assert.match(stdout, /state-dir/);
+});

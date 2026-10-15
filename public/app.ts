@@ -10,7 +10,7 @@ import {
   parseRouterModels,
 } from "./contracts.js";
 import { deepgramVoices, deepgramVoice } from "./deepgram-voices.js";
-import { sentences, VoiceGate } from "./voice.js";
+import { sentences, speechChunks, VoiceGate } from "./voice.js";
 import { element as $ } from "./dom.js";
 import {
   errorMessage,
@@ -57,6 +57,7 @@ const names = {
   elevenlabs: "ElevenLabs",
   "9router": "9Router",
   "local-whisper": "Local Whisper",
+  "local-kokoro": "Local Kokoro",
 };
 let token: string,
   settings: PublicSettings,
@@ -134,8 +135,9 @@ function state(label: string, detail: string, kind = "idle") {
   $("state").textContent = label;
   $("hint").textContent = detail;
   $("orb").dataset.state = kind;
-  $("end").disabled = !call && !currentJob;
-  $("interrupt").disabled = !call && !currentJob && !audio;
+  $("end").disabled = !call && !currentJob && kind !== "speaking";
+  $("interrupt").disabled =
+    !call && !currentJob && !audio && kind !== "speaking";
   $("talk").textContent = recording
     ? "■ Send recording"
     : call
@@ -259,11 +261,13 @@ async function select(s: SessionSummary) {
   }
 }
 function queueSpeech(text: string, g: number) {
-  const spoken = text;
+  for (const chunk of speechChunks(text)) queueSpeechChunk(chunk, g);
+}
+function queueSpeechChunk(spoken: string, g: number) {
   if (!spoken) return;
   speechQueue = speechQueue
     .then(async () => {
-      if (g !== generation) return;
+      if (g !== generation || lastSpeechError) return;
       state(
         "Speaking",
         selected?.agent === "claude"
@@ -273,7 +277,7 @@ function queueSpeech(text: string, g: number) {
       );
       const blob = await api("/synthesize", parseAudio, {
         method: "POST",
-        body: { text: spoken.slice(0, 12000) },
+        body: { text: spoken },
         signal: aborter.signal,
       });
       if (g !== generation) return;
@@ -393,7 +397,7 @@ async function send(text: string) {
       $("approval").hidden = true;
     }
   }
-  if (g !== generation) return;
+  if (g !== generation || lastSpeechError) return;
   state("Your turn", "Continue the conversation, or return to your terminal.");
   if (call && $("handsfree").checked && !lastSpeechError) await listen();
   refresh().catch(() => {});
@@ -682,7 +686,11 @@ function paintSettings() {
   for (const side of ["stt", "tts"] as const) {
     $(`${side}Provider`).replaceChildren();
     for (const [id, name] of Object.entries(names)) {
-      if (side === "tts" && id === "local-whisper") continue;
+      if (
+        (side === "tts" && id === "local-whisper") ||
+        (side === "stt" && id === "local-kokoro")
+      )
+        continue;
       const o = new Option(name, id);
       $(`${side}Provider`).add(o);
     }
@@ -693,6 +701,7 @@ function paintSettings() {
   $("ttsSpeed").value = String(settings.tts.speed ?? 1);
   $("routerUrl").value = settings.routerUrl;
   $("localWhisperUrl").value = settings.stt.baseUrl || "http://127.0.0.1:17864";
+  $("localKokoroUrl").value = settings.tts.baseUrl || "http://127.0.0.1:17865";
   $("sttLabel").textContent = names[settings.stt.provider] + " listens";
   $("ttsLabel").textContent =
     (settings.tts.provider === "deepgram" && deepgramVoice(settings.tts.model)
@@ -703,7 +712,7 @@ function paintSettings() {
   paintVoicePicker();
   $("keyRows").replaceChildren();
   for (const [id, name] of Object.entries(names)) {
-    if (id === "local-whisper") continue;
+    if (id === "local-whisper" || id === "local-kokoro") continue;
     const row = document.createElement("div");
     row.className = "keyrow";
     const label = document.createElement("span");
@@ -759,12 +768,13 @@ async function testVoice() {
     await stop();
     lastSpeechError = false;
     aborter = new AbortController();
+    const g = generation;
     queueSpeech(
       "Agentflow is ready. This is your selected voice. You can talk to your Codex and Claude Code sessions here.",
       generation,
     );
     await speechQueue;
-    if (lastSpeechError) return;
+    if (lastSpeechError || g !== generation) return;
     state(
       "Voice test finished",
       "If you heard that, your speech output is connected.",
@@ -784,9 +794,12 @@ $("replay").onclick = async () => {
   if (!lastReply) return;
   await stop();
   aborter = new AbortController();
-  for (const s of sentences(lastReply, true).ready) queueSpeech(s, generation);
+  const g = generation;
+  lastSpeechError = false;
+  for (const s of sentences(lastReply, true).ready) queueSpeech(s, g);
   await speechQueue;
-  state("Your turn", "Replay complete.");
+  if (g === generation && !lastSpeechError)
+    state("Your turn", "Replay complete.");
 };
 $("composer").onsubmit = async (e) => {
   e.preventDefault();
@@ -854,6 +867,7 @@ $("settingsForm").onsubmit = async (e) => {
           provider: $("ttsProvider").value,
           model: $("ttsModel").value,
           voice: $("ttsVoice").value,
+          baseUrl: $("localKokoroUrl").value,
           speed: Number($("ttsSpeed").value),
         },
         routerUrl: $("routerUrl").value,

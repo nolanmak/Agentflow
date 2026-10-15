@@ -52,6 +52,7 @@ interface Elements {
   ttsSpeed: HTMLSelectElement;
   routerUrl: HTMLInputElement;
   localWhisperUrl: HTMLInputElement;
+  localKokoroUrl: HTMLInputElement;
   keyRows: HTMLElement;
   settingsNotice: HTMLElement;
   routerModels: HTMLButtonElement;

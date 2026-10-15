@@ -28,6 +28,7 @@ const envNames = {
   elevenlabs: "ELEVENLABS_API_KEY",
   "9router": "NINEROUTER_KEY",
   "local-whisper": "",
+  "local-kokoro": "",
 };
 export class KeyStore {
   cache: Map<Provider, string>;
@@ -35,7 +36,7 @@ export class KeyStore {
     this.cache = new Map<Provider, string>();
   }
   async get(provider: Provider) {
-    if (provider === "local-whisper") return "";
+    if (provider === "local-whisper" || provider === "local-kokoro") return "";
     if (this.cache.has(provider)) return this.cache.get(provider)!;
     let value = "";
     try {

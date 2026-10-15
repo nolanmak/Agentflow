@@ -69,3 +69,32 @@ test("local speak sends the saved playback speed to afplay without changing synt
   );
   assert.ok(!request.includes("speed"));
 });
+
+test("local playback preserves WAV extension and keeps MPEG playback unchanged, then deletes audio", async () => {
+  const { readFile, access } = await import("node:fs/promises");
+  const wav = Buffer.alloc(46);
+  wav.write("RIFF");
+  wav.writeUInt32LE(38, 4);
+  wav.write("WAVEfmt ", 8);
+  wav.writeUInt32LE(16, 16);
+  wav.writeUInt16LE(1, 20);
+  wav.writeUInt16LE(1, 22);
+  wav.writeUInt32LE(24000, 24);
+  wav.writeUInt32LE(48000, 28);
+  wav.writeUInt16LE(2, 32);
+  wav.writeUInt16LE(16, 34);
+  wav.write("data", 36);
+  wav.writeUInt32LE(2, 40);
+  for (const [bytes, extension] of [
+    [wav, ".wav"],
+    [Buffer.from("ID3"), ".mp3"],
+  ] as const) {
+    let path = "";
+    await playLocalAudio(bytes, 1.25, async (_executable, args) => {
+      path = args.at(-1)!;
+      assert.ok(path.endsWith(extension), path);
+      assert.deepEqual(await readFile(path), bytes);
+    });
+    await assert.rejects(() => access(path));
+  }
+});

@@ -9,3 +9,12 @@ await copyFile(
   resolve("scripts/local-whisper.py"),
   resolve("dist/scripts/local-whisper.py"),
 );
+
+await copyFile(
+  resolve("scripts/local-kokoro.py"),
+  resolve("dist/scripts/local-kokoro.py"),
+);
+await copyFile(
+  resolve("scripts/kokoro-requirements.txt"),
+  resolve("dist/scripts/kokoro-requirements.txt"),
+);
