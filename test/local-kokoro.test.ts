@@ -231,3 +231,43 @@ test("HTTP synthesis uses local Kokoro without any key lookup", async () => {
     await rm(dir, { recursive: true, force: true });
   }
 });
+test("canceling a stalled real local audio response closes transport and permits a new request", async () => {
+  const { createServer } = await import("node:http");
+  let first = true;
+  let closed!: () => void;
+  const disconnected = new Promise<void>((r) => {
+    closed = r;
+  });
+  let started!: () => void;
+  const headersSent = new Promise<void>((r) => {
+    started = r;
+  });
+  const engine = createServer(async (req, res) => {
+    for await (const chunk of req) {
+    }
+    res.setHeader("content-type", "audio/wav");
+    if (first) {
+      first = false;
+      res.write(wav().subarray(0, 20));
+      res.on("close", closed);
+      started();
+    } else res.end(wav());
+  });
+  await new Promise<void>((r) => engine.listen(0, "127.0.0.1", r));
+  const address = engine.address();
+  assert.ok(address && typeof address !== "string");
+  const config = { ...local, baseUrl: `http://127.0.0.1:${address.port}` };
+  try {
+    const controller = new AbortController();
+    const pending = synthesize(config, "", "hello", controller.signal);
+    const rejection = assert.rejects(pending);
+    await headersSent;
+    controller.abort();
+    await rejection;
+    await disconnected;
+    assert.deepEqual((await synthesize(config, "", "next")).audio, wav());
+  } finally {
+    engine.closeAllConnections();
+    await new Promise<void>((r) => engine.close(() => r()));
+  }
+});
