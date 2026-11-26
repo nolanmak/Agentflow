@@ -15,6 +15,9 @@ jobs:
         with:
           node-version: '26.5.1'
           cache: npm
+      - name: Socket Firewall in front of npm, npx and pnpm (github-ci-security)
+        if: runner.os == 'Linux'
+        run: bash .github/security/install-tools.sh sfw
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: npm ci
       - run: npm run typecheck
